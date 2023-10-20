@@ -29,14 +29,13 @@ class Canvas(app.Canvas):
         
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
-        data = np.array([[0,0]], dtype=np.float32)
-        self.program['a_position'] = data
+        self.pos = np.array([[0,0]], dtype=np.float32)
+        self.program['a_position'] = self.pos
         self.program['u_size'] = 20.*ps
  
         self.timer = app.Timer('auto', self.on_timer)
         self.timer.start()
 
-        self.text = 'tick'        
         self.show()
 
     def on_resize(self, event):
@@ -48,11 +47,24 @@ class Canvas(app.Canvas):
         self.program.draw('points')
 
     def on_timer(self, event):
-        print(self.text)
+        pass
         
     def on_key_press(self, event):
-        if event.text == ' ':
-            self.text = 'tock' 
+        h_inc = np.array([[0.01, 0.0]], dtype=np.float32)
+        v_inc = np.array([[0.0, 0.01]], dtype=np.float32)
+        
+        if event.text == 'a':
+            self.pos -= h_inc 
+        if event.text == 'd':
+            self.pos += h_inc 
+        if event.text == 'w':
+            self.pos += v_inc 
+        if event.text == 's':
+            self.pos -= v_inc 
+            
+        self.program['a_position'] = self.pos
+        
+        self.update()
             
 if __name__ == '__main__':
     canvas = Canvas()
