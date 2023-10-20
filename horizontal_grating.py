@@ -2,9 +2,6 @@ import sys
 
 from vispy import gloo
 from vispy import app
-import numpy as np
-from multiprocessing import Process, Queue
-import time
 
 FREQ = 0.01
 

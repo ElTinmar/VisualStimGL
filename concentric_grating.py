@@ -2,9 +2,6 @@ import sys
 
 from vispy import gloo
 from vispy import app
-import numpy as np
-from multiprocessing import Process, Queue
-import time
 
 FREQ = 0.01
 
@@ -28,15 +25,14 @@ FRAG_SHADER = f"""
 varying float v_phase;
 void main()
 {{
-    vec2 center = vec2(0, 0);
+    vec2 center = vec2(0.0, 0.0);
     float radius = distance(gl_FragCoord.xy, center);
-    const float tau = 2.0*3.14159;
+    const float tau = 2.0 * 3.14159;
     const float freq = {FREQ};
     float value = 0.5 + 0.5 * sin(freq*tau*radius + v_phase);
     gl_FragColor = vec4(value, value, value, 1.0);
 }} 
 """
-
 
 class Canvas(app.Canvas):
     def __init__(self):
