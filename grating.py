@@ -6,7 +6,7 @@ import numpy as np
 from multiprocessing import Process, Queue
 import time
 
-
+FREQ = 0.01
 
 VERT_SHADER = """
 attribute vec2 position;
@@ -24,15 +24,15 @@ void main()
 # in bool gl_FrontFacing;
 # in vec2 gl_PointCoord;
 
-FRAG_SHADER = """
+FRAG_SHADER = f"""
 varying float v_phase;
 void main()
-{
+{{
     const float tau = 2.0*3.14159;
-    const float freq = 0.01;
+    const float freq = {FREQ};
     float value = 0.5 + 0.5 * sin(freq*tau*gl_FragCoord.x + v_phase);
     gl_FragColor = vec4(value, value, value, 1.0);
-} 
+}} 
 """
 
 
