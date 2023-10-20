@@ -36,7 +36,6 @@ void main()
 }
 """
 
-
 class Canvas(app.Canvas):
     def __init__(self):
         app.Canvas.__init__(self, size=(1024,1024), keys='interactive')
@@ -64,13 +63,11 @@ class Canvas(app.Canvas):
     def on_draw(self, event):
         gloo.clear('black')
         self.program.draw('triangle_strip')
-
-    
+ 
     def on_timer(self, event):
         self.alpha += 0.1
         self.program['norm'] = [math.cos(self.alpha), math.sin(self.alpha)]
         self.update()
-    
     
 if __name__ == '__main__':
     canvas = Canvas()
