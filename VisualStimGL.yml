@@ -1,0 +1,13 @@
+name: VisualStimGL
+channels:
+  - conda-forge
+dependencies:
+  - python == 3.8
+  - ipython
+  - pip
+  - pip:
+    - PyQt5
+    - pytest
+  - numpy
+  - vispy
+
