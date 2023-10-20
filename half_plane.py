@@ -7,12 +7,15 @@ FREQ = 0.01
 
 VERT_SHADER = """
 attribute vec2 position;
-attribute float phase;
-varying float v_phase;
+attribute vec2 norm;
+attribute vec2 origin; 
+varying vec2 v_norm;
+varying vec2 v_origin;
 void main()
 {
     gl_Position = vec4(position, 0.0, 1.0);
-    v_phase = phase;
+    v_norm = norm;
+    v_origin = origin;
 } 
 """
 
@@ -21,15 +24,15 @@ void main()
 # in bool gl_FrontFacing;
 # in vec2 gl_PointCoord;
 
-FRAG_SHADER = f"""
-varying float v_phase;
+FRAG_SHADER = """
+varying vec2 v_norm;
+varying vec2 v_origin;
 void main()
-{{
-    const float tau = 2.0*3.14159;
-    const float freq = {FREQ};
-    float value = 0.5 + 0.5 * sin(freq*tau*gl_FragCoord.x + v_phase);
-    gl_FragColor = vec4(value, value, value, 1.0);
-}} 
+{
+    if ( dot(gl_FragCoord.xy-v_origin, v_norm)>0 ) {
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    } 
+}
 """
 
 
@@ -43,12 +46,13 @@ class Canvas(app.Canvas):
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
 
         # Set uniforms and attributes
-        self.program['phase'] = 0
+        self.program['norm'] = [-1, 1]
+        self.program['origin'] = [512, 512]
         self.program['position'] = [(-1, -1), (-1, +1),
                                     (+1, -1), (+1, +1)]
  
-        self.timer = app.Timer('auto', self.on_timer)
-        self.timer.start()
+        #self.timer = app.Timer('auto', self.on_timer)
+        #self.timer.start()
 
         self.show()
 
