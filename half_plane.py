@@ -2,6 +2,7 @@ import sys
 
 from vispy import gloo
 from vispy import app
+import math
 
 FREQ = 0.01
 
@@ -41,18 +42,18 @@ class Canvas(app.Canvas):
         app.Canvas.__init__(self, size=(1024,1024), keys='interactive')
 
         ps = self.pixel_scale
-        self.phase = 0
+        self.alpha = 0
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
 
         # Set uniforms and attributes
-        self.program['norm'] = [-1, 1]
+        self.program['norm'] = [1.0, 0.0]
         self.program['origin'] = [512, 512]
         self.program['position'] = [(-1, -1), (-1, +1),
                                     (+1, -1), (+1, +1)]
  
-        #self.timer = app.Timer('auto', self.on_timer)
-        #self.timer.start()
+        self.timer = app.Timer('auto', self.on_timer)
+        self.timer.start()
 
         self.show()
 
@@ -66,8 +67,8 @@ class Canvas(app.Canvas):
 
     
     def on_timer(self, event):
-        self.phase += 20 * 1/60 
-        self.program['phase'] = self.phase
+        self.alpha += 0.1
+        self.program['norm'] = [math.cos(self.alpha), math.sin(self.alpha)]
         self.update()
     
     
