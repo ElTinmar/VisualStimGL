@@ -25,7 +25,7 @@ FRAG_SHADER = f"""
 varying float v_phase;
 void main()
 {{
-    vec2 center = vec2(0.0, 0.0);
+    vec2 center = vec2(512.0, 512.0);
     float radius = distance(gl_FragCoord.xy, center);
     const float tau = 2.0 * 3.14159;
     const float freq = {FREQ};
@@ -63,7 +63,7 @@ class Canvas(app.Canvas):
 
     
     def on_timer(self, event):
-        self.phase += 20 * 1/60 
+        self.phase += 10 * 1/60 
         self.program['phase'] = self.phase
         self.update()
     
