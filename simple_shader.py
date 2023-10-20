@@ -3,6 +3,8 @@ import sys
 from vispy import gloo
 from vispy import app
 import numpy as np
+from multiprocessing import Process, Queue
+import time
 
 VERT_SHADER = """
 attribute vec2 a_position;
@@ -22,9 +24,10 @@ void main() {
 
 
 class Canvas(app.Canvas):
-    def __init__(self):
+    def __init__(self, queue):
         app.Canvas.__init__(self, keys='interactive')
 
+        self.queue = queue
         ps = self.pixel_scale
         
 
@@ -47,7 +50,9 @@ class Canvas(app.Canvas):
         self.program.draw('points')
 
     def on_timer(self, event):
-        pass
+        self.pos = self.queue.get()
+        self.program['a_position'] = self.pos
+        self.update()
         
     def on_key_press(self, event):
         h_inc = np.array([[0.01, 0.0]], dtype=np.float32)
@@ -65,8 +70,32 @@ class Canvas(app.Canvas):
         self.program['a_position'] = self.pos
         
         self.update()
+
+def monitor(queue):
+    while True:
+        print(queue.qsize())    
+        time.sleep(0.1)
             
+def producer(queue):
+    pos = np.array([[0.0,0.0]], dtype=np.float32)
+    alpha_inc = 0.1
+    alpha = 0
+    while True:
+        alpha = alpha + alpha_inc
+        pos[0,0] = 0.5*np.cos(alpha)
+        pos[0,1] = 0.5*np.sin(alpha)
+        queue.put(pos)
+        time.sleep(0.017)
+    
+    
 if __name__ == '__main__':
-    canvas = Canvas()
+    q = Queue()
+    prod = Process(target=producer, args=(q,))
+    mon = Process(target=monitor, args=(q,))
+    prod.start()
+    mon.start()
+    canvas = Canvas(q)
     if sys.flags.interactive != 1:
         app.run()
+    prod.terminate()
+    mon.terminate()
