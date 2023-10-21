@@ -30,7 +30,9 @@ varying vec2 v_norm;
 varying vec2 v_origin;
 void main()
 {
-    if ( dot(gl_FragCoord.xy-v_origin, v_norm)>0 ) {
+    float width = 20;
+    bvec2 pix_in_bar = bvec2(dot(gl_FragCoord.xy-v_origin, v_norm)>0, dot(gl_FragCoord.xy-v_origin, v_norm)<width);
+    if (all(pix_in_bar)) {
         gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
     } 
 }
