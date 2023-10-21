@@ -1,23 +1,17 @@
 import sys
-
 from vispy import gloo
 from vispy import app
-import math
 
-FREQ = 0.01
+FREQ = 100
 
 VERT_SHADER = """
 attribute vec2 position;
-attribute vec2 norm;
-attribute vec2 origin; 
-varying vec2 v_norm;
-varying vec2 v_origin;
+attribute float phase;
+varying float v_phase;
 void main()
 {
-    // wrap plane around a cylinder
     gl_Position = vec4(position, 0.0, 1.0);
-    v_norm = norm;
-    v_origin = origin;
+    v_phase = phase;
 } 
 """
 
@@ -26,18 +20,26 @@ void main()
 # in bool gl_FrontFacing;
 # in vec2 gl_PointCoord;
 
-FRAG_SHADER = """
-varying vec2 v_norm;
-varying vec2 v_origin;
+FRAG_SHADER = f"""
+varying float v_phase;
+
+vec2 rotate(vec2 v, float a) {{
+	float s = sin(a);
+	float c = cos(a);
+	mat2 m = mat2(c, s, -s, c);
+	return m * v;
+}}
+
 void main()
-{
-    float width = 20;
-    float freq = 100;
-    bvec2 pix_in_bar = bvec2(mod(dot(gl_FragCoord.xy-v_origin, v_norm), freq)>0, mod(dot(gl_FragCoord.xy-v_origin, v_norm),freq)<width);
-    if (all(pix_in_bar)) {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    } 
-}
+{{
+    const float tau = 2.0*3.14159;
+    float deg2rad = tau/360.0;
+    float theta = deg2rad*30;
+    const float freq = {FREQ};
+    vec2 rot_coord = rotate(gl_FragCoord.xy, theta);
+    float value = mod( floor(rot_coord.x / freq) + floor(rot_coord.y / freq) , 2);
+    gl_FragColor = vec4(value, value, value, 1.0);
+}} 
 """
 
 class Canvas(app.Canvas):
@@ -45,13 +47,12 @@ class Canvas(app.Canvas):
         app.Canvas.__init__(self, size=(1024,1024), keys='interactive')
 
         ps = self.pixel_scale
-        self.alpha = 0
+        self.phase = 0
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
 
         # Set uniforms and attributes
-        self.program['norm'] = [1.0, 0.0]
-        self.program['origin'] = [512, 512]
+        self.program['phase'] = 0
         self.program['position'] = [(-1, -1), (-1, +1),
                                     (+1, -1), (+1, +1)]
  
@@ -67,11 +68,13 @@ class Canvas(app.Canvas):
     def on_draw(self, event):
         gloo.clear('black')
         self.program.draw('triangle_strip')
- 
+
+    
     def on_timer(self, event):
-        self.alpha += 0.01
-        self.program['norm'] = [math.cos(self.alpha), math.sin(self.alpha)]
+        self.phase += 20 * 1/60 
+        self.program['phase'] = self.phase
         self.update()
+    
     
 if __name__ == '__main__':
     canvas = Canvas()
