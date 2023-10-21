@@ -8,6 +8,7 @@ dependencies:
   - pip:
     - PyQt5
     - pytest
+    - matplotlib
   - numpy
   - vispy
 
