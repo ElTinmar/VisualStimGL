@@ -34,6 +34,8 @@ class Canvas(app.Canvas):
         self.pos = np.array([[0,0]], dtype=np.float32)
         self.program['a_position'] = self.pos
         self.program['u_size'] = 20.*ps
+
+        gloo.set_viewport(0, 0, *self.physical_size)
  
         self.timer = app.Timer('auto', self.on_timer)
         self.timer.start()
@@ -89,11 +91,11 @@ def producer(queue):
     
 if __name__ == '__main__':
     q = Queue()
+    canvas = Canvas(q)
     prod = Process(target=producer, args=(q,))
     mon = Process(target=monitor, args=(q,))
     prod.start()
     mon.start()
-    canvas = Canvas(q)
     if sys.flags.interactive != 1:
         app.run()
     prod.terminate()
