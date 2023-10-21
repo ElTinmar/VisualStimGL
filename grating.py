@@ -1,5 +1,4 @@
 import sys
-
 from vispy import gloo
 from vispy import app
 
@@ -23,11 +22,22 @@ void main()
 
 FRAG_SHADER = f"""
 varying float v_phase;
+
+vec2 rotate(vec2 v, float a) {{
+	float s = sin(a);
+	float c = cos(a);
+	mat2 m = mat2(c, s, -s, c);
+	return m * v;
+}}
+
 void main()
 {{
     const float tau = 2.0*3.14159;
+    float deg2rad = tau/360.0;
+    float theta = deg2rad*45;
     const float freq = {FREQ};
-    float value = 0.5 + 0.5 * sin(freq*tau*gl_FragCoord.x + v_phase);
+    vec2 rot_coord = rotate(gl_FragCoord.xy, theta);
+    float value = 0.5 + 0.5 * sin(freq*tau*rot_coord.x + v_phase);
     gl_FragColor = vec4(value, value, value, 1.0);
 }} 
 """
