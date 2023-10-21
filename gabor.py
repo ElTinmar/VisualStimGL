@@ -29,17 +29,17 @@ vec2 rotate(vec2 v, float a) {
 
 void main()
 {
-    vec2 center = vec2(512.0, 512.0);
-    float lambda = 0.01;
-    float theta = 0.1;
-    float psi = 0.0;
-    float sigma = 50.0;
-    float gamma = 1.0;
     float tau = 2*3.14159;
+    float deg2rad = tau/360.0;
+    vec2 center = vec2(512.0, 512.0);
+    float lambda = 50.0;
+    float theta = deg2rad*45;
+    float psi = 0.0;
+    float sigma = 100.0;
+    float gamma = 1.0;
     vec2 rot_coord = rotate(gl_FragCoord.xy-center, theta);
-    float value = exp(-( pow(rot_coord.x,2)+pow(gamma,2)*pow(rot_coord.y,2) ) / ( 2*pow(sigma,2) ))*cos(tau*rot_coord.x/lambda + psi);
+    float value = 0.5 + 0.5*exp(-( pow(rot_coord.x,2)+pow(gamma,2)*pow(rot_coord.y,2) ) / ( 2*pow(sigma,2) )) * cos(tau*rot_coord.x/lambda + psi);
     gl_FragColor = vec4(value, value, value, 1.0);
-    
 }
 """
 
