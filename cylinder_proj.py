@@ -14,6 +14,7 @@ varying vec2 v_norm;
 varying vec2 v_origin;
 void main()
 {
+    // wrap plane around a cylinder
     gl_Position = vec4(position, 0.0, 1.0);
     v_norm = norm;
     v_origin = origin;
