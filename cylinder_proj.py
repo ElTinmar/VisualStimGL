@@ -1,17 +1,18 @@
 import sys
-from vispy import gloo
-from vispy import app
+from vispy import app, gloo
+from vispy.gloo import IndexBuffer
+from vispy.geometry import create_cylinder
+from vispy.util.transforms import rotate
+import numpy as np
 
 FREQ = 100
 
 VERT_SHADER = """
-attribute vec2 position;
-attribute float phase;
-varying float v_phase;
+attribute vec3 a_position;
+uniform   mat4 u_model;
 void main()
 {
-    gl_Position = vec4(position, 0.0, 1.0);
-    v_phase = phase;
+    gl_Position = u_model * vec4(a_position, 1.0);
 } 
 """
 
@@ -21,23 +22,10 @@ void main()
 # in vec2 gl_PointCoord;
 
 FRAG_SHADER = f"""
-varying float v_phase;
-
-vec2 rotate(vec2 v, float a) {{
-	float s = sin(a);
-	float c = cos(a);
-	mat2 m = mat2(c, s, -s, c);
-	return m * v;
-}}
-
 void main()
 {{
-    const float tau = 2.0*3.14159;
-    float deg2rad = tau/360.0;
-    float theta = deg2rad*30;
     const float freq = {FREQ};
-    vec2 rot_coord = rotate(gl_FragCoord.xy + vec2(v_phase, 0.0), theta);
-    float value = mod( floor(rot_coord.x / freq) + floor(rot_coord.y / freq) , 2);
+    float value = mod( floor(gl_FragCoord.x / freq) + floor(gl_FragCoord.y / freq) , 2);
     gl_FragColor = vec4(value, value, value, 1.0);
 }} 
 """
@@ -49,13 +37,15 @@ class Canvas(app.Canvas):
         ps = self.pixel_scale
         self.phase = 0
 
-        self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
+        mesh_data = create_cylinder(100,100,radius=(0.5, 0.5),length=1.0)
+        V = mesh_data.get_vertices()
+        I = mesh_data.get_faces().ravel()
+        self.indices = IndexBuffer(I)
 
-        # Set uniforms and attributes
-        self.program['phase'] = 0
-        self.program['position'] = [(-1, -1), (-1, +1),
-                                    (+1, -1), (+1, +1)]
- 
+        self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
+        self.program['a_position'] = V
+        self.program['u_model'] = rotate(90, (0,1,0), dtype = np.float32)
+
         self.timer = app.Timer('auto', self.on_timer)
         self.timer.start()
 
@@ -66,13 +56,10 @@ class Canvas(app.Canvas):
         gloo.set_viewport(0, 0, width, height)
 
     def on_draw(self, event):
-        gloo.clear('black')
-        self.program.draw('triangle_strip')
+        gloo.clear(color=True, depth=True)
+        self.program.draw('triangles', self.indices)
 
-    
     def on_timer(self, event):
-        self.phase += 50 * 1/60 
-        self.program['phase'] = self.phase
         self.update()
     
     
