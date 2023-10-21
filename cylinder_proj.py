@@ -5,14 +5,15 @@ from vispy.geometry import create_cylinder
 from vispy.util.transforms import rotate
 import numpy as np
 
-FREQ = 100
-
 VERT_SHADER = """
 attribute vec3 a_position;
 uniform   mat4 u_model;
+varying float v_col;
 void main()
 {
+    const float freq = 0.1;
     gl_Position = u_model * vec4(a_position, 1.0);
+    v_col = mod( floor(gl_Position.x / freq) + floor(gl_Position.y / freq) , 2);
 } 
 """
 
@@ -21,13 +22,12 @@ void main()
 # in bool gl_FrontFacing;
 # in vec2 gl_PointCoord;
 
-FRAG_SHADER = f"""
+FRAG_SHADER = """
+varying float v_col;
 void main()
-{{
-    const float freq = {FREQ};
-    float value = mod( floor(gl_FragCoord.x / freq) + floor(gl_FragCoord.y / freq) , 2);
-    gl_FragColor = vec4(value, value, value, 1.0);
-}} 
+{
+    gl_FragColor = vec4(v_col, v_col, v_col, 1.0);
+}
 """
 
 class Canvas(app.Canvas):
@@ -37,14 +37,14 @@ class Canvas(app.Canvas):
         ps = self.pixel_scale
         self.phase = 0
 
-        mesh_data = create_cylinder(100,100,radius=(0.5, 0.5),length=1.0)
+        mesh_data = create_cylinder(100,100,radius=(1.0, 1.0),length=1.0)
         V = mesh_data.get_vertices()
         I = mesh_data.get_faces().ravel()
         self.indices = IndexBuffer(I)
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.program['a_position'] = V
-        self.program['u_model'] = rotate(90, (0,1,0), dtype = np.float32)
+        self.program['u_model'] = rotate(90, (1,0,0), dtype = np.float32)
 
         self.timer = app.Timer('auto', self.on_timer)
         self.timer.start()
