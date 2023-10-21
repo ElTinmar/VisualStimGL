@@ -42,7 +42,6 @@ void main()
 }} 
 """
 
-
 class Canvas(app.Canvas):
     def __init__(self):
         app.Canvas.__init__(self, size=(1024,1024), keys='interactive')
