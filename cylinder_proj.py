@@ -36,7 +36,7 @@ void main()
     float deg2rad = tau/360.0;
     float theta = deg2rad*30;
     const float freq = {FREQ};
-    vec2 rot_coord = rotate(gl_FragCoord.xy, theta);
+    vec2 rot_coord = rotate(gl_FragCoord.xy + vec2(v_phase, 0.0), theta);
     float value = mod( floor(rot_coord.x / freq) + floor(rot_coord.y / freq) , 2);
     gl_FragColor = vec4(value, value, value, 1.0);
 }} 
@@ -71,7 +71,7 @@ class Canvas(app.Canvas):
 
     
     def on_timer(self, event):
-        self.phase += 20 * 1/60 
+        self.phase += 50 * 1/60 
         self.program['phase'] = self.phase
         self.update()
     
