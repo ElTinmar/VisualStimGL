@@ -54,6 +54,22 @@ vec2 map(vec2 cartesian_coord, float r) {
     return(vec2(theta, phi));
 }
 
+vec4 blue_halo(float x, float y, float freq, float thickness) {
+    float middle = lines(x, y, freq, thickness);
+    float blue = middle;
+    
+    float d = 1.0;
+    int ksize = 15;
+    float sigma = 6;
+    for(int i=-ksize;i<=ksize;++i) {
+        for(int j=-ksize;j<=ksize;++j) {
+            blue = blue + 2/(2*3.14159*pow(sigma,2)) * exp(-0.5*(pow(i*d/sigma,2) + pow(j*d/sigma,2)))*lines(x+i*d, y+j*d, freq, thickness);
+        }
+    }
+    
+    return(vec4(middle,middle,blue,1.0));
+}
+
 void main()
 {
     float freq = 0.33;
@@ -61,8 +77,7 @@ void main()
     float radius = v_radius;
     vec2 coords = rotate(gl_FragCoord.xy-center, 0.5);
     vec2 spherical_coord = map(coords, radius);
-    float value = lines(spherical_coord.x + v_phase, spherical_coord.y, freq, 0.02);
-    gl_FragColor = vec4(value, value, value, 1.0);
+    gl_FragColor = blue_halo(spherical_coord.x + v_phase, spherical_coord.y, freq, 0.02);
 }
 """
 
@@ -99,7 +114,7 @@ class Canvas(app.Canvas):
         self.t += 1/60
         self.phase += np.deg2rad(90) * 1/60 
         self.program['phase'] = self.phase
-        self.radius = 200 + 100*np.sin(2*np.pi*self.t)
+        self.radius = 300 + 300 * np.exp(-1.5*self.t)*np.sin(2*np.pi*self.t)
         self.program['radius'] = self.radius
         self.update()
     
