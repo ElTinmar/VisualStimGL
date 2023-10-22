@@ -1,6 +1,7 @@
 import sys
 from vispy import app, gloo
 import numpy as np
+from functools import partial
 
 # TODO maybe I should use regular coordinates and rotate view
 
@@ -78,9 +79,12 @@ class Canvas(app.Canvas):
         self.program['phase'] = self.phase
         self.update()
     
-    
+def fps(canvas: Canvas, fps: float):
+    canvas.title = f'FPS: {fps}'
+
 if __name__ == '__main__':
     canvas = Canvas()
+    canvas.measure_fps(callback=partial(fps, canvas))
     if sys.flags.interactive != 1:
         app.run()
     
