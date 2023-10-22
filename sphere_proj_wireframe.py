@@ -67,7 +67,7 @@ vec4 blue_halo(float x, float y, float freq, float thickness) {
         }
     }
     
-    return(vec4(middle,middle,blue,1.0));
+    return(vec4(0.0,0.0,blue,1.0));
 }
 
 void main()
