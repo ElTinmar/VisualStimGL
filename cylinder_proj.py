@@ -7,9 +7,12 @@ import numpy as np
 
 VERT_SHADER = """
 attribute vec2 a_position;
+attribute float phase;
+varying float v_phase;
 void main()
 {
     gl_Position = vec4(a_position, 0.0, 1.0);
+    v_phase = phase;
 } 
 """
 
@@ -19,6 +22,8 @@ void main()
 # in vec2 gl_PointCoord;
 
 FRAG_SHADER = """
+varying float v_phase;
+
 float checkerboard(float theta, float h, float freq) {
 // create checkerboard texture on the surface of the cylinder
     float value = mod( floor(theta / freq) + floor(h / freq) , 2);
@@ -40,7 +45,7 @@ void main()
     vec2 center = vec2(512.0, 512.0);
     float radius = 512.0;
     vec2 cylindrical_coord = map(gl_FragCoord.xy, radius, center);
-    float value = checkerboard(cylindrical_coord.s, cylindrical_coord.t, freq);
+    float value = checkerboard(cylindrical_coord.s + v_phase, cylindrical_coord.t, freq);
     gl_FragColor = vec4(value, value, value, 1.0);
 }
 """
@@ -49,11 +54,13 @@ class Canvas(app.Canvas):
     def __init__(self):
         app.Canvas.__init__(self, size=(1024,1024), keys='interactive')
 
+        self.phase = 0
+
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
+        self.program['phase'] = 0
         self.program['a_position'] = [(-1, -1), (-1, +1),
                                     (+1, -1), (+1, +1)]
  
-
         self.timer = app.Timer('auto', self.on_timer)
         self.timer.start()
 
@@ -68,6 +75,8 @@ class Canvas(app.Canvas):
         self.program.draw('triangle_strip')
 
     def on_timer(self, event):
+        self.phase += 0.1 * 1/60 
+        self.program['phase'] = self.phase
         self.update()
     
     
