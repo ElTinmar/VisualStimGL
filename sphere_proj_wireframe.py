@@ -114,7 +114,7 @@ class Canvas(app.Canvas):
         self.t += 1/60
         self.phase += np.deg2rad(90) * 1/60 
         self.program['phase'] = self.phase
-        self.radius = 300 + 300 * np.exp(-1.5*self.t)*np.sin(2*np.pi*self.t)
+        self.radius = 300 + 300 * np.exp(-1.5*(self.t%5))*np.sin(2*np.pi*self.t)
         self.program['radius'] = self.radius
         self.update()
     
