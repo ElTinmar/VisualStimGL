@@ -11,3 +11,5 @@ This repository is a playground to create visual stimuli using opengl.
  - Klein bottle
  - Möbius strip
  - Trefoil Knot
+ - Heart
+ - Cat 
