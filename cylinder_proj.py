@@ -1,9 +1,8 @@
 import sys
 from vispy import app, gloo
-from vispy.gloo import IndexBuffer
-from vispy.geometry import create_cylinder
-from vispy.util.transforms import rotate
 import numpy as np
+
+# TODO maybe I should use regular coordinates and rotate view
 
 VERT_SHADER = """
 attribute vec2 a_position;
