@@ -6,14 +6,10 @@ from vispy.util.transforms import rotate
 import numpy as np
 
 VERT_SHADER = """
-attribute vec3 a_position;
-uniform   mat4 u_model;
-varying float v_col;
+attribute vec2 a_position;
 void main()
 {
-    const float freq = 0.1;
-    gl_Position = u_model * vec4(a_position, 1.0);
-    v_col = mod( floor(gl_Position.x / freq) + floor(gl_Position.y / freq) , 2);
+    gl_Position = vec4(a_position, 0.0, 1.0);
 } 
 """
 
@@ -23,10 +19,29 @@ void main()
 # in vec2 gl_PointCoord;
 
 FRAG_SHADER = """
-varying float v_col;
+float checkerboard(float theta, float h, float freq) {
+// create checkerboard texture on the surface of the cylinder
+    float value = mod( floor(theta / freq) + floor(h / freq) , 2);
+    return(value);
+}
+
+vec2 map(vec2 cartesian_coord, float r, vec2 center) {
+// map cartesian to cylindrical coords
+    float x = cartesian_coord.x - center.x;
+    float y = cartesian_coord.y - center.y;
+    float theta = acos(x/r);
+    float h = cartesian_coord.y/r;
+    return(vec2(theta, h));
+}
+
 void main()
 {
-    gl_FragColor = vec4(v_col, v_col, v_col, 1.0);
+    float freq = 2*3.14159*0.01;
+    vec2 center = vec2(512.0, 512.0);
+    float radius = 512.0;
+    vec2 cylindrical_coord = map(gl_FragCoord.xy, radius, center);
+    float value = checkerboard(cylindrical_coord.s, cylindrical_coord.t, freq);
+    gl_FragColor = vec4(value, value, value, 1.0);
 }
 """
 
@@ -34,17 +49,10 @@ class Canvas(app.Canvas):
     def __init__(self):
         app.Canvas.__init__(self, size=(1024,1024), keys='interactive')
 
-        ps = self.pixel_scale
-        self.phase = 0
-
-        mesh_data = create_cylinder(100,100,radius=(1.0, 1.0),length=1.0)
-        V = mesh_data.get_vertices()
-        I = mesh_data.get_faces().ravel()
-        self.indices = IndexBuffer(I)
-
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
-        self.program['a_position'] = V
-        self.program['u_model'] = rotate(90, (1,0,0), dtype = np.float32)
+        self.program['a_position'] = [(-1, -1), (-1, +1),
+                                    (+1, -1), (+1, +1)]
+ 
 
         self.timer = app.Timer('auto', self.on_timer)
         self.timer.start()
@@ -57,7 +65,7 @@ class Canvas(app.Canvas):
 
     def on_draw(self, event):
         gloo.clear(color=True, depth=True)
-        self.program.draw('triangles', self.indices)
+        self.program.draw('triangle_strip')
 
     def on_timer(self, event):
         self.update()
