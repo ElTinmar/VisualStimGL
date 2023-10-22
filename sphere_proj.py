@@ -77,7 +77,7 @@ class Canvas(app.Canvas):
         self.program.draw('triangle_strip')
 
     def on_timer(self, event):
-        self.phase += 0.1 * 1/60 
+        self.phase += np.deg2rad(90) * 1/60 
         self.program['phase'] = self.phase
         self.update()
     
