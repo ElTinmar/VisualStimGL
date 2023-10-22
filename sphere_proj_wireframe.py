@@ -8,11 +8,15 @@ from functools import partial
 VERT_SHADER = """
 attribute vec2 a_position;
 attribute float phase;
+attribute float radius;
 varying float v_phase;
+varying float v_radius;
+
 void main()
 {
     gl_Position = vec4(a_position, 0.0, 1.0);
     v_phase = phase;
+    v_radius = radius;
 } 
 """
 
@@ -23,6 +27,14 @@ void main()
 
 FRAG_SHADER = """
 varying float v_phase;
+varying float v_radius;
+
+vec2 rotate(vec2 v, float a) {
+	float s = sin(a);
+	float c = cos(a);
+	mat2 m = mat2(c, s, -s, c);
+	return m * v;
+}
 
 float lines(float x, float y, float freq, float thickness) {
     
@@ -32,10 +44,10 @@ float lines(float x, float y, float freq, float thickness) {
     return(value);
 }
 
-vec2 map(vec2 cartesian_coord, float r, vec2 center) {
+vec2 map(vec2 cartesian_coord, float r) {
 // map cartesian to spherical coords
-    float x = cartesian_coord.x - center.x;
-    float y = cartesian_coord.y - center.y;
+    float x = cartesian_coord.x;
+    float y = cartesian_coord.y;
     float z = sqrt(pow(r,2) - pow(x,2) - pow(y,2));
     float theta = sign(z) * acos( x / sqrt(pow(x,2)+pow(z,2)) );
     float phi = acos( y / sqrt(pow(x,2) + pow(y,2) + pow(z,2)) );
@@ -46,8 +58,9 @@ void main()
 {
     float freq = 0.33;
     vec2 center = vec2(512.0, 512.0);
-    float radius = 512.0;
-    vec2 spherical_coord = map(gl_FragCoord.xy, radius, center);
+    float radius = v_radius;
+    vec2 coords = rotate(gl_FragCoord.xy-center, 0.5);
+    vec2 spherical_coord = map(coords, radius);
     float value = lines(spherical_coord.x + v_phase, spherical_coord.y, freq, 0.02);
     gl_FragColor = vec4(value, value, value, 1.0);
 }
@@ -57,13 +70,17 @@ class Canvas(app.Canvas):
     def __init__(self):
         app.Canvas.__init__(self, size=(1024,1024), keys='interactive')
 
+        self.t = 0
         self.phase = 0
+        self.radius = 200
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.program['phase'] = 0
+        self.program['radius'] = 200
         self.program['a_position'] = [(-1, -1), (-1, +1),
                                     (+1, -1), (+1, +1)]
  
+
         self.timer = app.Timer('auto',self.on_timer)
         self.timer.start()
 
@@ -79,8 +96,11 @@ class Canvas(app.Canvas):
         self.program.draw('triangle_strip')
 
     def on_timer(self, event):
+        self.t += 1/60
         self.phase += np.deg2rad(90) * 1/60 
         self.program['phase'] = self.phase
+        self.radius = 200 + 100*np.sin(2*np.pi*self.t)
+        self.program['radius'] = self.radius
         self.update()
     
 def fps(canvas: Canvas, fps: float):
