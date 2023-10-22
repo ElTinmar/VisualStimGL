@@ -24,9 +24,11 @@ void main()
 FRAG_SHADER = """
 varying float v_phase;
 
-float checkerboard(float theta, float phi, float freq) {
-// create checkerboard texture on the surface of the cylinder
-    float value = mod( floor(theta / freq) + floor(phi / freq) , 2);
+float lines(float x, float y, float freq, float thickness) {
+    
+    float value = float(mod(x, freq)>0) * float(mod(x, freq)<thickness) 
+        + float(mod(y, freq)>0) * float(mod(y, freq)<thickness);
+
     return(value);
 }
 
@@ -42,11 +44,11 @@ vec2 map(vec2 cartesian_coord, float r, vec2 center) {
 
 void main()
 {
-    float freq = 2*3.14159*0.01;
+    float freq = 0.33;
     vec2 center = vec2(512.0, 512.0);
     float radius = 512.0;
     vec2 spherical_coord = map(gl_FragCoord.xy, radius, center);
-    float value = checkerboard(spherical_coord.s + v_phase, spherical_coord.t, freq);
+    float value = lines(spherical_coord.x + v_phase, spherical_coord.y, freq, 0.02);
     gl_FragColor = vec4(value, value, value, 1.0);
 }
 """
@@ -62,7 +64,6 @@ class Canvas(app.Canvas):
         self.program['a_position'] = [(-1, -1), (-1, +1),
                                     (+1, -1), (+1, +1)]
  
-
         self.timer = app.Timer('auto',self.on_timer)
         self.timer.start()
 
