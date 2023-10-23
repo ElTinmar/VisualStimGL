@@ -63,7 +63,7 @@ vec4 blue_halo(float x, float y, float freq, float thickness) {
     float sigma = 6;
     for(int i=-ksize;i<=ksize;++i) {
         for(int j=-ksize;j<=ksize;++j) {
-            blue = blue + 2/(2*3.14159*pow(sigma,2)) * exp(-0.5*(pow(i*d/sigma,2) + pow(j*d/sigma,2)))*lines(x+i*d, y+j*d, freq, thickness);
+            blue = blue + 0.5 * 1/(2*3.14159*pow(sigma,2)) * exp(-0.5*(pow(i*d/sigma,2) + pow(j*d/sigma,2)))*lines(x+i*d, y+j*d, freq, thickness);
         }
     }
     
@@ -73,7 +73,7 @@ vec4 blue_halo(float x, float y, float freq, float thickness) {
 void main()
 {
     float freq = 0.33;
-    vec2 center = vec2(512.0, 512.0);
+    vec2 center = vec2(456.0, 570.0);
     float radius = v_radius;
     vec2 coords = rotate(gl_FragCoord.xy-center, 0.5);
     vec2 spherical_coord = map(coords, radius);
@@ -83,7 +83,7 @@ void main()
 
 class Canvas(app.Canvas):
     def __init__(self):
-        app.Canvas.__init__(self, size=(1024,1024), keys='interactive')
+        app.Canvas.__init__(self, size=(912,1140), decorate=False, position=(2560,0), keys='interactive')
 
         self.t = 0
         self.phase = 0
@@ -96,7 +96,7 @@ class Canvas(app.Canvas):
                                     (+1, -1), (+1, +1)]
  
 
-        self.timer = app.Timer('auto',self.on_timer)
+        self.timer = app.Timer(1/120,self.on_timer)
         self.timer.start()
 
         self.show()
@@ -111,8 +111,8 @@ class Canvas(app.Canvas):
         self.program.draw('triangle_strip')
 
     def on_timer(self, event):
-        self.t += 1/60
-        self.phase += np.deg2rad(90) * 1/60 
+        self.t += 1/120
+        self.phase += np.deg2rad(90) * 1/120 
         self.program['phase'] = self.phase
         self.radius = 300 + 300 * np.exp(-1.5*(self.t%5))*np.sin(2*np.pi*self.t)
         self.program['radius'] = self.radius
@@ -121,10 +121,10 @@ class Canvas(app.Canvas):
 def fps(canvas: Canvas, fps: float):
         canvas.title = f'FPS: {fps}'
 
-
 if __name__ == '__main__':
     canvas = Canvas()
-    canvas.measure_fps(callback=partial(fps, canvas))
+    #canvas.measure_fps(callback=partial(fps, canvas))
+    canvas.measure_fps()
     if sys.flags.interactive != 1:
         app.run()
     

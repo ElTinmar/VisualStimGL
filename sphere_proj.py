@@ -53,7 +53,7 @@ void main()
 
 class Canvas(app.Canvas):
     def __init__(self):
-        app.Canvas.__init__(self, size=(1280,800), decorate=False, position=(2560,0), keys='interactive')
+        app.Canvas.__init__(self, size=(912,1140), decorate=False, position=(2560,0), keys='interactive')
 
         self.phase = 0
 

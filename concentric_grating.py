@@ -25,7 +25,7 @@ FRAG_SHADER = f"""
 varying float v_phase;
 void main()
 {{
-    vec2 center = vec2(512.0, 512.0);
+    vec2 center = vec2(456.0, 570.0);
     float radius = distance(gl_FragCoord.xy, center);
     const float tau = 2.0 * 3.14159;
     const float freq = {FREQ};
@@ -36,7 +36,7 @@ void main()
 
 class Canvas(app.Canvas):
     def __init__(self):
-        app.Canvas.__init__(self, size=(1024,1024), keys='interactive')
+        app.Canvas.__init__(self, size=(912,1140), decorate=False, position=(2560,0), keys='interactive')
 
         ps = self.pixel_scale
         self.phase = 0
@@ -48,7 +48,7 @@ class Canvas(app.Canvas):
         self.program['position'] = [(-1, -1), (-1, +1),
                                     (+1, -1), (+1, +1)]
  
-        self.timer = app.Timer('auto', self.on_timer)
+        self.timer = app.Timer(1/120, self.on_timer)
         self.timer.start()
 
         self.show()
@@ -63,13 +63,13 @@ class Canvas(app.Canvas):
 
     
     def on_timer(self, event):
-        self.phase += 10 * 1/60 
+        self.phase += 10 * 1/120 
         self.program['phase'] = self.phase
         self.update()
-    
-    
+        
 if __name__ == '__main__':
     canvas = Canvas()
+    canvas.measure_fps()
     if sys.flags.interactive != 1:
         app.run()
     

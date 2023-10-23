@@ -52,7 +52,7 @@ void main()
 
 class Canvas(app.Canvas):
     def __init__(self):
-        app.Canvas.__init__(self, size=(1280,800), decorate=False, position=(2560,0), keys='interactive')
+        app.Canvas.__init__(self, size=(912,1140), decorate=False, position=(2560,0), keys='interactive')
 
         self.phase = 0
 
@@ -61,7 +61,7 @@ class Canvas(app.Canvas):
         self.program['a_position'] = [(-1, -1), (-1, +1),
                                     (+1, -1), (+1, +1)]
  
-        self.timer = app.Timer('auto', self.on_timer)
+        self.timer = app.Timer(1/120, self.on_timer)
         self.timer.start()
 
         self.show()
@@ -75,7 +75,7 @@ class Canvas(app.Canvas):
         self.program.draw('triangle_strip')
 
     def on_timer(self, event):
-        self.phase +=  np.deg2rad(45) * 1/60 
+        self.phase +=  np.deg2rad(30) * 1/120 
         self.program['phase'] = self.phase
         self.update()
     
@@ -84,7 +84,8 @@ def fps(canvas: Canvas, fps: float):
 
 if __name__ == '__main__':
     canvas = Canvas()
-    canvas.measure_fps(callback=partial(fps, canvas))
+    #canvas.measure_fps(callback=partial(fps, canvas))
+    canvas.measure_fps()
     if sys.flags.interactive != 1:
         app.run()
     
