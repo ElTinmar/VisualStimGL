@@ -18,6 +18,8 @@ This repository is a playground to create visual stimuli using opengl.
 
 # TODO
 
-The behavior of sqrt for negative numbers is unspecified.
+- The behavior of sqrt for negative numbers is unspecified.
 Some implementation may use abs. Make sure you define 
 the intended behavior in your shader
+
+- send (window size / time / mouse) as uniforms to the fragment shader
