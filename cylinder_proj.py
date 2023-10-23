@@ -42,8 +42,8 @@ vec2 map(vec2 cartesian_coord, float r, vec2 center) {
 void main()
 {
     float freq = 2*3.14159*0.01;
-    vec2 center = vec2(512.0, 512.0);
-    float radius = 512.0;
+    vec2 center = vec2(640.0, 400.0);
+    float radius = 400.0;
     vec2 cylindrical_coord = map(gl_FragCoord.xy, radius, center);
     float value = checkerboard(cylindrical_coord.s + v_phase, cylindrical_coord.t, freq);
     gl_FragColor = vec4(value, value, value, 1.0);
@@ -52,7 +52,7 @@ void main()
 
 class Canvas(app.Canvas):
     def __init__(self):
-        app.Canvas.__init__(self, size=(1024,1024), keys='interactive')
+        app.Canvas.__init__(self, size=(1280,800), decorate=False, position=(2560,0), keys='interactive')
 
         self.phase = 0
 
