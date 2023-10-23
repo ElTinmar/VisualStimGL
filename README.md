@@ -15,3 +15,9 @@ This repository is a playground to create visual stimuli using opengl.
  - Cat 
  - Particle effects ?
  - parametric curve in 3D like 3B1B fourier   
+
+# TODO
+
+The behavior of sqrt for negative numbers is unspecified.
+Some implementation may use abs. Make sure you define 
+the intended behavior in your shader
