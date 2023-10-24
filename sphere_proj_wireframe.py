@@ -1,22 +1,20 @@
 import sys
 from vispy import app, gloo
-import numpy as np
-from functools import partial
 
 # TODO maybe I should use regular coordinates and rotate view
 
 VERT_SHADER = """
 attribute vec2 a_position;
-attribute float phase;
-attribute float radius;
-varying float v_phase;
-varying float v_radius;
+attribute vec2 a_resolution;
+attribute float a_time;
+varying vec2 v_resolution;
+varying float v_time;
 
 void main()
 {
     gl_Position = vec4(a_position, 0.0, 1.0);
-    v_phase = phase;
-    v_radius = radius;
+    v_resolution = a_resolution;
+    v_time = a_time;
 } 
 """
 
@@ -26,8 +24,10 @@ void main()
 # in vec2 gl_PointCoord;
 
 FRAG_SHADER = """
-varying float v_phase;
-varying float v_radius;
+#version 150
+
+varying vec2 v_resolution;
+varying float v_time;
 
 vec2 rotate(vec2 v, float a) {
 	float s = sin(a);
@@ -36,16 +36,7 @@ vec2 rotate(vec2 v, float a) {
 	return m * v;
 }
 
-float lines(float x, float y, float freq, float thickness) {
-    
-    float value = float(mod(x, freq)>0) * float(mod(x, freq)<thickness) 
-        + float(mod(y, freq)>0) * float(mod(y, freq)<thickness);
-
-    return(value);
-}
-
-vec2 map(vec2 cartesian_coord, float r) {
-// map cartesian to spherical coords
+vec2 map_plane_to_sphere_surface(vec2 cartesian_coord, float r) {
     float x = cartesian_coord.x;
     float y = cartesian_coord.y;
     float z = sqrt(pow(r,2) - pow(x,2) - pow(y,2));
@@ -54,68 +45,103 @@ vec2 map(vec2 cartesian_coord, float r) {
     return(vec2(theta, phi));
 }
 
-vec4 blue_halo(float x, float y, float freq, float thickness) {
-    float middle = lines(x, y, freq, thickness);
-    float blue = middle;
-    
-    float d = 1.0;
+float lines(vec2 pos, float freq, float thickness) {
+    // TODO maybe use smoothedge
+    float value = float(mod(pos.x, freq)>0) * float(mod(pos.x, freq)<thickness) 
+        + float(mod(pos.y, freq)>0) * float(mod(pos.y, freq)<thickness);
+
+    return(value);
+}
+
+float gaussian_2D(vec2 x, vec2 mu, mat2 sigma) {
+    float tau = 2*3.14159;
+    float norm = sqrt( pow(tau,2) * determinant(sigma) );
+    float gaussian = exp(-1/2 * dot((x-mu) * inverse(sigma), (x-mu)) );
+    return(gaussian/norm);
+}
+
+float halo_lines(vec2 pos, float freq, float thickness) {
     int ksize = 15;
-    float sigma = 6;
+    vec2 mu = vec2(0.0, 0.0);
+    mat2 sigma = mat2(6.0, 0.0, 0.0, 6.0);
+    float pixel_value = lines(pos, freq, thickness);
+    float strength = 0.1;
+
     for(int i=-ksize;i<=ksize;++i) {
         for(int j=-ksize;j<=ksize;++j) {
-            blue = blue + 0.5 * 1/(2*3.14159*pow(sigma,2)) * exp(-0.5*(pow(i*d/sigma,2) + pow(j*d/sigma,2)))*lines(x+i*d, y+j*d, freq, thickness);
+            vec2 e = vec2(pos.x+i, pos.y+j);
+            pixel_value += strength * gaussian_2D(e, pos, sigma) * lines(e, freq, thickness);
         }
     }
     
-    return(vec4(0.0,0.0,blue,1.0));
+    return(pixel_value);
+}
+
+vec3 hsv2rgb(vec3 hsv_color) {
+    // from wikipedia https://en.wikipedia.org/wiki/HSL_and_HSV
+    float h = hsv_color.x; float s = hsv_color.y; float v = hsv_color.z;
+
+    float r = v - v*s*max(0, min(min(mod(5 + h/60,6), 4-mod(5 + h/60,6)), 1.0));
+    float g = v - v*s*max(0, min(min(mod(3 + h/60,6), 4-mod(3 + h/60,6)), 1.0));
+    float b = v - v*s*max(0, min(min(mod(1 + h/60,6), 4-mod(1 + h/60,6)), 1.0));
+    return(vec3(r,g,b));
 }
 
 void main()
 {
-    float freq = 0.33;
-    vec2 center = vec2(456.0, 570.0);
-    float radius = v_radius;
-    vec2 coords = rotate(gl_FragCoord.xy-center, 0.5);
-    vec2 spherical_coord = map(coords, radius);
-    gl_FragColor = blue_halo(spherical_coord.x + v_phase, spherical_coord.y, freq, 0.02);
+    float tau = 2*3.14159;
+    float deg2rad = tau/360;
+    float bar_freq = 0.33;
+    float expansion_freq = 2.0;
+    float bounce_period = 2.5;
+    float damping = 1.5;
+    float hue_rot_speed = 0.25 * 360.0;
+    float initial_radius = 2.0/3.0 * min(v_resolution.x, v_resolution.y)/2.0;
+    float expansion = 1.0/3.0 * min(v_resolution.x, v_resolution.y)/2.0;
+    
+    float phase = deg2rad * 90 * v_time;
+    float radius = initial_radius + expansion * exp( -damping * mod(v_time, bounce_period) ) * sin( expansion_freq*tau*v_time );
+    vec2 center = v_resolution/2;
+    vec2 cartesian_coord = rotate(gl_FragCoord.xy-center, 0.5);
+    vec2 spherical_coord = map_plane_to_sphere_surface(cartesian_coord, radius);
+    float value = halo_lines(spherical_coord + vec2(phase, 0.0), bar_freq, 0.02);
+     
+    vec3 col_hsv =  vec3(mod(hue_rot_speed*v_time,360),1.0,1.0);
+    vec3 col_rgb = hsv2rgb(col_hsv);
+    gl_FragColor = vec4(value*col_rgb,1.0);
 }
 """
 
 class Canvas(app.Canvas):
     def __init__(self):
-        app.Canvas.__init__(self, size=(912,1140), decorate=False, position=(2560,0), keys='interactive')
+        sz = (912,1140)
+
+        app.Canvas.__init__(self, size=sz, decorate=True, position=(2560,0), keys='interactive')
 
         self.t = 0
-        self.phase = 0
-        self.radius = 200
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
-        self.program['phase'] = 0
-        self.program['radius'] = 200
+        self.program['a_resolution'] = sz
+        self.program['a_time'] = 0
         self.program['a_position'] = [(-1, -1), (-1, +1),
                                     (+1, -1), (+1, +1)]
  
-
-        self.timer = app.Timer(1/120,self.on_timer)
+        self.timer = app.Timer(1/120, self.on_timer)
         self.timer.start()
-
         self.show()
-
 
     def on_resize(self, event):
         width, height = event.size
         gloo.set_viewport(0, 0, width, height)
+        self.program['a_resolution'] = (width, height)
 
     def on_draw(self, event):
         gloo.clear(color=True, depth=True)
         self.program.draw('triangle_strip')
 
     def on_timer(self, event):
-        self.t += 1/120
-        self.phase += np.deg2rad(90) * 1/120 
-        self.program['phase'] = self.phase
-        self.radius = 300 + 300 * np.exp(-1.5*(self.t%5))*np.sin(2*np.pi*self.t)
-        self.program['radius'] = self.radius
+        self.t += 1/120 # maybe give the actual time ?
+        self.program['a_time'] = self.t
         self.update()
     
 def fps(canvas: Canvas, fps: float):
