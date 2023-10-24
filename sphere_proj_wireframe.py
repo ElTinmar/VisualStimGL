@@ -56,7 +56,7 @@ float lines(vec2 pos, float freq, float thickness) {
 float gaussian_2D(vec2 x, vec2 mu, mat2 sigma) {
     float tau = 2*3.14159;
     float norm = sqrt( pow(tau,2) * determinant(sigma) );
-    float gaussian = exp(-1/2 * dot((x-mu) * inverse(sigma), (x-mu)) );
+    float gaussian = exp(-1.0/2.0 * dot((x-mu) * inverse(sigma), (x-mu)) );
     return(gaussian/norm);
 }
 
@@ -65,7 +65,7 @@ float halo_lines(vec2 pos, float freq, float thickness) {
     vec2 mu = vec2(0.0, 0.0);
     mat2 sigma = mat2(6.0, 0.0, 0.0, 6.0);
     float pixel_value = lines(pos, freq, thickness);
-    float strength = 0.1;
+    float strength = 1.0;
 
     for(int i=-ksize;i<=ksize;++i) {
         for(int j=-ksize;j<=ksize;++j) {
@@ -90,8 +90,9 @@ vec3 hsv2rgb(vec3 hsv_color) {
 void main()
 {
     float tau = 2*3.14159;
-    float deg2rad = tau/360;
+    float deg2rad = tau/360.0;
     float bar_freq = 0.33;
+    float bar_thickness = 0.02;
     float expansion_freq = 2.0;
     float bounce_period = 2.5;
     float damping = 1.5;
@@ -99,12 +100,12 @@ void main()
     float initial_radius = 2.0/3.0 * min(v_resolution.x, v_resolution.y)/2.0;
     float expansion = 1.0/3.0 * min(v_resolution.x, v_resolution.y)/2.0;
     
-    float phase = deg2rad * 90 * v_time;
+    float phase = deg2rad * 90.0 * v_time;
     float radius = initial_radius + expansion * exp( -damping * mod(v_time, bounce_period) ) * sin( expansion_freq*tau*v_time );
     vec2 center = v_resolution/2;
     vec2 cartesian_coord = rotate(gl_FragCoord.xy-center, 0.5);
     vec2 spherical_coord = map_plane_to_sphere_surface(cartesian_coord, radius);
-    float value = halo_lines(spherical_coord + vec2(phase, 0.0), bar_freq, 0.02);
+    float value = halo_lines(spherical_coord + vec2(phase, 0.0), bar_freq, bar_thickness);
      
     vec3 col_hsv =  vec3(mod(hue_rot_speed*v_time,360),1.0,1.0);
     vec3 col_rgb = hsv2rgb(col_hsv);
