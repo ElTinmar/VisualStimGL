@@ -98,8 +98,7 @@ void main()
     int ksize = 10;
     float sigma = 6.0;
     float halo_strength = 1.0;
-    //vec2 dmd_aspect_ratio = vec2(sqrt(2)/2, sqrt(2));
-    vec2 dmd_aspect_ratio = vec2(1.0, 1.0);
+    vec2 dmd_aspect_ratio = vec2(sqrt(2), sqrt(2)/2);
 
     float phase = deg2rad * 90.0 * v_time;
     float radius = initial_radius + expansion * exp( -damping * mod(v_time, bounce_period) ) * sin( expansion_freq*tau*v_time );
