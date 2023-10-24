@@ -14,7 +14,7 @@ This repository is a playground to create visual stimuli using opengl.
  - Heart
  - Cat 
  - Particle effects ?
- - parametric curve in 3D like 3B1B fourier   
+ - parametric curve in 3D like 3B1B fourier
 
 # TODO
 
@@ -23,3 +23,5 @@ Some implementation may use abs. Make sure you define
 the intended behavior in your shader
 
 - send (window size / time / mouse) as uniforms to the fragment shader
+
+- normalize the coordinates in the fragment shader at the beginning?
