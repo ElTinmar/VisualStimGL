@@ -98,11 +98,13 @@ void main()
     int ksize = 10;
     float sigma = 6.0;
     float halo_strength = 1.0;
+    //vec2 dmd_aspect_ratio = vec2(sqrt(2)/2, sqrt(2));
+    vec2 dmd_aspect_ratio = vec2(1.0, 1.0);
 
     float phase = deg2rad * 90.0 * v_time;
     float radius = initial_radius + expansion * exp( -damping * mod(v_time, bounce_period) ) * sin( expansion_freq*tau*v_time );
     vec2 center = v_resolution/2;
-    vec2 cartesian_coord = rotate(gl_FragCoord.xy-center, 0.5);
+    vec2 cartesian_coord = rotate(dmd_aspect_ratio * (gl_FragCoord.xy-center), 0.5);
     vec2 spherical_coord = map_plane_to_sphere_surface(cartesian_coord, radius);
     float value = halo_lines(spherical_coord + vec2(phase, 0.0), bar_freq, bar_thickness, ksize, sigma, halo_strength);
      
@@ -116,7 +118,7 @@ class Canvas(app.Canvas):
     def __init__(self):
         sz = (912,1140)
 
-        app.Canvas.__init__(self, size=sz, decorate=True, position=(2560,0), keys='interactive')
+        app.Canvas.__init__(self, size=sz, decorate=False, position=(2560,0), keys='interactive')
 
         self.t = 0
 
