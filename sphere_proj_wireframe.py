@@ -39,9 +39,10 @@ vec2 rotate(vec2 v, float a) {
 vec2 map_plane_to_sphere_surface(vec2 cartesian_coord, float r) {
     float x = cartesian_coord.x;
     float y = cartesian_coord.y;
-    float z = sqrt(pow(r,2) - pow(x,2) - pow(y,2));
-    float theta = sign(z) * acos( x / sqrt(pow(x,2)+pow(z,2)) );
-    float phi = acos( y / sqrt(pow(x,2) + pow(y,2) + pow(z,2)) );
+    float z_sq = r*r - x*x - y*y; // that quantity is negative outside the sphere
+    float z = sqrt(z_sq); 
+    float theta = sign(z) * acos( x / sqrt(x*x + z*z) );
+    float phi = acos( y / sqrt(x*x + y*y + z*z) );
     return(vec2(theta, phi));
 }
 
@@ -55,7 +56,7 @@ float lines(vec2 pos, float freq, float thickness) {
 
 float gaussian_2D(vec2 x, vec2 mu, mat2 sigma) {
     float tau = 2*3.14159;
-    float norm = sqrt( pow(tau,2) * determinant(sigma) );
+    float norm = sqrt( tau*tau * determinant(sigma) );
     float gaussian = exp(-1.0/2.0 * dot((x-mu) * inverse(sigma), (x-mu)) );
     return(gaussian/norm);
 }
