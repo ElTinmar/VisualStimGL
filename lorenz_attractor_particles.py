@@ -41,8 +41,7 @@ void main()
 
 class Canvas(app.Canvas):
     def __init__(self):
-        sz = (912,1140)        
-        app.Canvas.__init__(self, size=sz, decorate=True, position=(2560,0), keys='interactive')
+        app.Canvas.__init__(self, fullscreen=True, keys='interactive')
 
         ps = self.pixel_scale
         self.t = 0
@@ -55,7 +54,7 @@ class Canvas(app.Canvas):
         self.coords = 60*np.random.rand(3, self.num_particles).astype(np.float32)-30
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
-        self.program['a_resolution'] = sz
+        self.program['a_resolution'] = self.physical_size
         self.program['a_time'] = 0
         self.program['a_position'] = self.coords.T
         self.program['u_size'] = 1.*ps
