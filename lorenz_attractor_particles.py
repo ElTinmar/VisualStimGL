@@ -60,7 +60,7 @@ class Canvas(app.Canvas):
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.program['a_resolution'] = self.physical_size
         self.program['a_time'] = 0
-        self.program['a_position'] = self.coords
+        self.program['a_position'] = np.vstack([self.coords, self.coords])
         self.program['u_size'] = 1.*ps
         self.program['u_view'] =  np.eye(4, dtype=np.float32) 
         self.program['u_model'] = np.eye(4, dtype=np.float32)
@@ -76,7 +76,7 @@ class Canvas(app.Canvas):
         self.program['a_resolution'] = (width, height)
 
     def on_draw(self, event):
-        self.program.draw('points')
+        self.program.draw('lines')
 
     def on_timer(self, event):
 
@@ -100,8 +100,14 @@ class Canvas(app.Canvas):
         dy = x*(rho - z) - y
         dz = x*y - beta*z
 
-        self.coords = self.coords + np.vstack((dx*dt,dy*dt,dz*dt)).T
-        self.program['a_position'] = self.coords / np.array([60,60,60], dtype=np.float32)
+        old_coords = self.coords.copy() 
+        new_coords = self.coords + np.vstack((dx*dt,dy*dt,dz*dt)).T
+        final_coords = np.empty((2*old_coords.shape[0],3), dtype=new_coords.dtype)
+        final_coords[0::2,:] = old_coords
+        final_coords[1::2,:] = new_coords
+        self.coords = new_coords
+
+        self.program['a_position'] = final_coords / np.array([60,60,60], dtype=np.float32)
         self.program['u_model'] = rotate(self.phi,(0,1,0))
 
         self.update()
