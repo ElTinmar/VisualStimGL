@@ -77,10 +77,11 @@ vec3 hsv2rgb(vec3 hsv_color) {
     // from wikipedia https://en.wikipedia.org/wiki/HSL_and_HSV
     float h = hsv_color.x; float s = hsv_color.y; float v = hsv_color.z;
 
-    float r = v - v*s*max(0, min(min(mod(5 + h/60,6), 4-mod(5 + h/60,6)), 1.0));
-    float g = v - v*s*max(0, min(min(mod(3 + h/60,6), 4-mod(3 + h/60,6)), 1.0));
-    float b = v - v*s*max(0, min(min(mod(1 + h/60,6), 4-mod(1 + h/60,6)), 1.0));
-    return(vec3(r,g,b));
+    float r = v - v*s*max(0.0, min(min(mod(5 + h/60,6), 4-mod(5 + h/60,6)), 1.0));
+    float g = v - v*s*max(0.0, min(min(mod(3 + h/60,6), 4-mod(3 + h/60,6)), 1.0));
+    float b = v - v*s*max(0.0, min(min(mod(1 + h/60,6), 4-mod(1 + h/60,6)), 1.0));
+    vec3 rgb_color = vec3(r,g,b);
+    return(rgb_color);
 }
 
 void main()
