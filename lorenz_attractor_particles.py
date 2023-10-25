@@ -51,12 +51,12 @@ class Canvas(app.Canvas):
         self.beta = 0.0
         self.theta = 0
         self.num_particles = 50000
-        self.coords = 60*np.random.rand(3, self.num_particles).astype(np.float32)-30
+        self.coords = 60*np.random.rand(self.num_particles,3).astype(np.float32)-30
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.program['a_resolution'] = self.physical_size
         self.program['a_time'] = 0
-        self.program['a_position'] = self.coords.T
+        self.program['a_position'] = self.coords
         self.program['u_size'] = 1.*ps
         self.program['u_view'] =  np.eye(4, dtype=np.float32) 
         self.program['u_model'] = np.eye(4, dtype=np.float32)
@@ -88,16 +88,16 @@ class Canvas(app.Canvas):
         beta = self.beta
         rho = self.rho
         
-        x = self.coords[0,:]
-        y = self.coords[1,:]
-        z = self.coords[2,:]
+        x = self.coords[:,0]
+        y = self.coords[:,1]
+        z = self.coords[:,2]
 
         dx = sigma*(y - x)
         dy = x*(rho - z) - y
         dz = x*y - beta*z
 
-        self.coords = self.coords + np.vstack((dx*dt,dy*dt,dz*dt))
-        self.program['a_position'] = self.coords.T / np.array((60,60,60), dtype=np.float32)
+        self.coords = self.coords + np.vstack((dx*dt,dy*dt,dz*dt)).T
+        self.program['a_position'] = self.coords / np.array([60,60,60], dtype=np.float32)
         self.program['u_model'] = rotate(self.phi,(0,1,0))
 
         self.update()
