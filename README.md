@@ -11,10 +11,7 @@ This repository is a playground to create visual stimuli using opengl.
  - Klein bottle
  - Möbius strip
  - Trefoil Knot
- - Heart
- - Cat 
- - Particle effects ?
- - parametric curve in 3D like 3B1B fourier
+ - Particle effects 
 
 # TODO
 
