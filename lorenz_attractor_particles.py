@@ -8,9 +8,10 @@ VERT_SHADER = """
 attribute vec3 a_position;
 attribute vec2 a_resolution;
 attribute float a_time;
+attribute vec3 a_color;
 varying vec2 v_resolution;
 varying float v_time;
-
+varying vec3 v_color;
 uniform float u_size;
 uniform mat4 u_model;
 uniform mat4 u_view;
@@ -21,6 +22,7 @@ void main()
     gl_PointSize = u_size;
     v_resolution = a_resolution;
     v_time = a_time;
+    v_color = a_color;
 } 
 """
 
@@ -32,10 +34,11 @@ void main()
 FRAG_SHADER = """
 varying vec2 v_resolution;
 varying float v_time;
+varying vec3 v_color;
 
 void main()
 {
-    gl_FragColor = vec4(1.0,1.0,1.0, 1.0);
+    gl_FragColor = vec4(v_color, 1.0);
 }
 """
 
@@ -52,6 +55,7 @@ class Canvas(app.Canvas):
         self.theta = 0
         self.num_particles = 50000
         self.coords = 60*np.random.rand(self.num_particles,3).astype(np.float32)-30
+        col = np.ones((self.num_particles,3),dtype = np.float32)
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.program['a_resolution'] = self.physical_size
@@ -60,6 +64,7 @@ class Canvas(app.Canvas):
         self.program['u_size'] = 1.*ps
         self.program['u_view'] =  np.eye(4, dtype=np.float32) 
         self.program['u_model'] = np.eye(4, dtype=np.float32)
+        self.program['a_color'] = col
  
         self.timer = app.Timer(1/60, self.on_timer)
         self.timer.start()
@@ -71,7 +76,6 @@ class Canvas(app.Canvas):
         self.program['a_resolution'] = (width, height)
 
     def on_draw(self, event):
-        gloo.clear(color=True, depth=True)
         self.program.draw('points')
 
     def on_timer(self, event):
@@ -92,7 +96,7 @@ class Canvas(app.Canvas):
         y = self.coords[:,1]
         z = self.coords[:,2]
 
-        dx = sigma*(y - x)
+        dx = sigma*(y - x) 
         dy = x*(rho - z) - y
         dz = x*y - beta*z
 
