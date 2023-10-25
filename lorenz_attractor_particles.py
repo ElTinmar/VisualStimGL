@@ -8,10 +8,8 @@ VERT_SHADER = """
 attribute vec3 a_position;
 attribute vec2 a_resolution;
 attribute float a_time;
-attribute vec3 a_color;
 varying vec2 v_resolution;
 varying float v_time;
-varying vec3 v_color;
 uniform float u_size;
 uniform mat4 u_model;
 uniform mat4 u_view;
@@ -22,7 +20,6 @@ void main()
     gl_PointSize = u_size;
     v_resolution = a_resolution;
     v_time = a_time;
-    v_color = a_color;
 } 
 """
 
@@ -34,11 +31,10 @@ void main()
 FRAG_SHADER = """
 varying vec2 v_resolution;
 varying float v_time;
-varying vec3 v_color;
 
 void main()
 {
-    gl_FragColor = vec4(v_color, 1.0);
+    gl_FragColor = vec4(1.0,1.0,1.0, 1.0);
 }
 """
 
@@ -54,18 +50,23 @@ class Canvas(app.Canvas):
         self.beta = 0.0
         self.theta = 0
         self.num_particles = 50000
-        self.coords = 60*np.random.rand(self.num_particles,3).astype(np.float32)-30
-        col = np.ones((self.num_particles,3),dtype = np.float32)
+
+        old_coords = 60*np.random.rand(self.num_particles,3).astype(np.float32)-30
+        new_coords = 60*np.random.rand(self.num_particles,3).astype(np.float32)-30
+        final_coords = np.empty((2*old_coords.shape[0],3), dtype=new_coords.dtype)
+        final_coords[0::2,:] = old_coords
+        final_coords[1::2,:] = new_coords
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.program['a_resolution'] = self.physical_size
         self.program['a_time'] = 0
-        self.program['a_position'] = np.vstack([self.coords, self.coords])
+        self.program['a_position'] = final_coords
         self.program['u_size'] = 1.*ps
         self.program['u_view'] =  np.eye(4, dtype=np.float32) 
         self.program['u_model'] = np.eye(4, dtype=np.float32)
-        self.program['a_color'] = col
  
+        self.coords = new_coords
+
         self.timer = app.Timer(1/60, self.on_timer)
         self.timer.start()
         self.show()
@@ -80,7 +81,7 @@ class Canvas(app.Canvas):
 
     def on_timer(self, event):
 
-        dt = 1/60
+        dt = 1/120
         self.t += dt # maybe give the actual time ?
         self.phi += 25*dt 
         self.program['a_time'] = self.t
@@ -100,15 +101,17 @@ class Canvas(app.Canvas):
         dy = x*(rho - z) - y
         dz = x*y - beta*z
 
-        old_coords = self.coords.copy() 
+        old_coords = self.coords
         new_coords = self.coords + np.vstack((dx*dt,dy*dt,dz*dt)).T
         final_coords = np.empty((2*old_coords.shape[0],3), dtype=new_coords.dtype)
         final_coords[0::2,:] = old_coords
         final_coords[1::2,:] = new_coords
-        self.coords = new_coords
+        
 
         self.program['a_position'] = final_coords / np.array([60,60,60], dtype=np.float32)
         self.program['u_model'] = rotate(self.phi,(0,1,0))
+
+        self.coords = new_coords
 
         self.update()
     
