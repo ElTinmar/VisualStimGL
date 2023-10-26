@@ -12,6 +12,8 @@ This repository is a playground to create visual stimuli using opengl.
  - Möbius strip
  - Trefoil Knot
  - Particle effects 
+ - Ising model
+ - Segregation ?
 
 # TODO
 
