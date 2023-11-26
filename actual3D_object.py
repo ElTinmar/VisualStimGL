@@ -5,7 +5,7 @@ from vispy.util.transforms import perspective, translate, rotate
 import numpy as np
 import time
 from functools import partial
-
+from PyQt5.QtCore import QPoint
 
 VERT_SHADER ="""
 attribute vec3 a_position;
@@ -39,7 +39,7 @@ void main()
 
 class Canvas(app.Canvas):
     def __init__(self):
-        app.Canvas.__init__(self, size=(1280,720), keys='interactive')
+        app.Canvas.__init__(self, size=(1280,720), fullscreen=False, keys='interactive')
 
         mesh_data = create_cylinder(rows=10, cols = 36)
         self.phi, self.theta = 60, 20
@@ -96,7 +96,6 @@ class Canvas(app.Canvas):
     def on_mouse_move(self,event):
 
         # find angle between current view rotation and (x,y,inf)
-
         w, h = self.physical_size
         x, y = event.pos
 
@@ -108,7 +107,10 @@ class Canvas(app.Canvas):
         self.cam_phi = self.step_r * self.fovy/2 * (y-h/2)/(h/2)
 
         self.view = translate((self.cam_x, 0, self.cam_z)).dot(rotate(self.cam_phi, (1, 0, 0))).dot(rotate(self.cam_theta, (0, 1, 0)))
-        self.program['u_view'] = self.view        
+        self.program['u_view'] = self.view      
+
+        # self.native.cursor().setPos(self.native.mapToGlobal(QPoint(w/2,h/2))) # lots of jitter, probably emits mouse event imediately 
+
 
     def on_key_press(self, event):
 
