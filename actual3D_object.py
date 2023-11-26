@@ -101,16 +101,31 @@ class Canvas(app.Canvas):
 
         #self.cam_theta = self.step_r * np.rad2deg(np.arctan2((x-w/2)/(w/2), self.z_near))
         #self.cam_phi = self.step_r * np.rad2deg(np.arctan2((y-h/2)/(h/2), self.z_near))
-        aspect = w / float(h)
-        fovx = self.fovy * aspect
-        self.cam_theta = self.step_r * fovx/2 * (x-w/2)/(w/2)
-        self.cam_phi = self.step_r * self.fovy/2 * (y-h/2)/(h/2)
+
+        #aspect = w / float(h)
+        #fovx = self.fovy * aspect
+        #self.cam_theta = self.step_r * fovx/2 * (x-w/2)/(w/2)
+        #self.cam_phi = self.step_r * self.fovy/2 * (y-h/2)/(h/2)
+
+        if event.last_event is not None:
+            x0, y0 = event.last_event.pos
+        else:
+            x0 = w/2
+            y0 = h/2
+            self.native.cursor().setPos(self.native.mapToGlobal(QPoint(w/2,h/2)))
+        dx = x-x0
+        dy = y-y0
+        self.cam_theta += self.step_r * dx
+        self.cam_phi += self.step_r * dy
 
         self.view = translate((self.cam_x, 0, self.cam_z)).dot(rotate(self.cam_phi, (1, 0, 0))).dot(rotate(self.cam_theta, (0, 1, 0)))
         self.program['u_view'] = self.view      
-
-        # self.native.cursor().setPos(self.native.mapToGlobal(QPoint(w/2,h/2))) # lots of jitter, probably emits mouse event imediately 
-
+ 
+        #self.native.setMouseTracking(False)
+        #self.native.blockSignals(True)
+        self.native.cursor().setPos(self.native.mapToGlobal(QPoint(w/2,h/2))) # lots of jitter, probably emits mouse event imediately 
+        #self.native.blockSignals(False)
+        #self.native.setMouseTracking(True)
 
     def on_key_press(self, event):
 
