@@ -9,6 +9,8 @@ dependencies:
     - PyQt5
     - pytest
     - matplotlib
+    - PyOpenGL 
+    - PyOpenGL_accelerate
   - numpy
   - vispy
 
