@@ -189,30 +189,33 @@ class Canvas(app.Canvas):
             step = self.step_t
 
         if event.key == 'W':
-            tz = step
+            tz = 1
         elif event.key == 'A':
-            tx = step
+            tx = 1
         elif event.key == 'S':
-            tz = -step
+            tz = -1
         elif event.key == 'D':
-            tx = -step
+            tx = -1
         elif event.key == 'Up':
-            ty = -step
+            ty = -1
         elif event.key == 'Down':
-            ty = step
+            ty = 1
 
         # move in the direction of the view
-        # NOTE: this code doesn't register two keys  at the same time. If it did you would be moving faster diagonally (need to normalize the vector)
-        tx,ty,tz,_ = rotate(self.cam_yaw, (0, 1, 0)).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0))) @ np.array((tx,ty,tz,1.0))
+        t_vec = np.array((tx,ty,tz))
+        norm = np.linalg.norm(t_vec)
+        if norm>0:
+            t_vec = step * t_vec/norm
+            tx,ty,tz,_ = rotate(self.cam_yaw, (0, 1, 0)).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0))) @ np.hstack((t_vec,1.0))
 
-        self.cam_x += tx
-        self.cam_y += ty
-        self.cam_z += tz
+            self.cam_x += tx
+            self.cam_y += ty
+            self.cam_z += tz
 
-        self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
-        self.cylinder_program['u_view'] = self.view
-        self.floor_program['u_view'] = self.view
-        #print(f'Yaw: {self.cam_yaw}, Pitch: {self.cam_pitch}, Roll: {self.cam_roll}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
+            self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
+            self.cylinder_program['u_view'] = self.view
+            self.floor_program['u_view'] = self.view
+            #print(f'Yaw: {self.cam_yaw}, Pitch: {self.cam_pitch}, Roll: {self.cam_roll}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
 
     def on_resize(self, event):
         width, height = event.size
