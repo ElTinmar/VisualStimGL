@@ -182,23 +182,24 @@ class Canvas(app.Canvas):
         tx = 0
         ty = 0
         tz = 0
+    
+        if len(event.modifiers) > 0 and event.modifiers[0] == 'Shift':
+            step = self.step_t_fast
+        else:
+            step = self.step_t
 
-        if event.text == 'w':
-            tz = self.step_t
-        elif event.text == 'a':
-            tx = self.step_t
-        elif event.text == 's':
-            tz = -self.step_t
-        elif event.text == 'd':
-            tx = -self.step_t
-        if event.text == 'W':
-            tz = self.step_t_fast
-        elif event.text == 'A':
-            tx = self.step_t_fast
-        elif event.text == 'S':
-            tz = -self.step_t_fast
-        elif event.text == 'D':
-            tx = -self.step_t_fast
+        if event.key == 'W':
+            tz = step
+        elif event.key == 'A':
+            tx = step
+        elif event.key == 'S':
+            tz = -step
+        elif event.key == 'D':
+            tx = -step
+        elif event.key == 'Up':
+            ty = -step
+        elif event.key == 'Down':
+            ty = step
 
         # move in the direction of the view
         # NOTE: this code doesn't register two keys  at the same time. If it did you would be moving faster diagonally (need to normalize the vector)
