@@ -84,8 +84,8 @@ class Canvas(app.Canvas):
         self.cam_yaw = 0.0
         self.cam_pitch = 0.0
         self.cam_roll = 0.0
-        # NOTE: Euler angles suffer from gimbal lock, the order of euler rotation matters. It's ok here cause I never roll
-        # you can get rid of gimbal lock with quaternions
+        # NOTE: Euler angles suffer from gimbal lock, the order of euler rotation matters. It's ok here cause I never roll.
+        # You can get rid of gimbal lock with quaternions
 
         # perspective frustum
         self.z_near = 0.1
@@ -105,7 +105,7 @@ class Canvas(app.Canvas):
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(90, (1,0,0)))
         positions = positions[:,:-1]
-        normals =  mesh_data.get_vertex_normals()
+        normals =  mesh_data.get_vertex_normals() # this should also be affected by the rotation, but I'm not using it anyways
         col = np.array([1.0, 0.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
         vtype = [('a_position', np.float32, 3),
