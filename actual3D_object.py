@@ -3,8 +3,7 @@ from vispy import gloo, app,  use
 from vispy.geometry import create_cylinder
 from vispy.util.transforms import perspective, translate, rotate
 import numpy as np
-from PyQt5.QtCore import QPoint, Qt
-import time
+from PyQt5.QtCore import QPoint, Qt 
 
 # we need full gl context for instanced rendering (this requires PyOpenGL: pip install PyOpenGL PyOpenGL_accelerate)
 use(gl='gl+')
@@ -85,6 +84,7 @@ class Canvas(app.Canvas):
         self.cam_yaw = 0.0
         self.cam_pitch = 0.0
         self.cam_roll = 0.0
+        # NOTE: Euler angles suffer from gimbal lock, the order of euler rotation matters
 
         # perspective frustum
         self.z_near = 0.1
@@ -168,13 +168,13 @@ class Canvas(app.Canvas):
         self.cam_yaw += self.step_r*dx
         self.cam_pitch = max(min(self.cam_pitch + self.step_r*dy, 90), -90)
 
-        self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_pitch, (1, 0, 0))).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1)))
+        self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
         self.cylinder_program['u_view'] = self.view      
         self.floor_program['u_view'] = self.view
 
         self.native.cursor().setPos(self.native.mapToGlobal(QPoint(w//2,h//2))) 
 
-        print(f'Theta: {self.cam_yaw}, phi: {self.cam_pitch}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
+        print(f'Yaw: {self.cam_yaw}, Pitch: {self.cam_pitch}, Roll: {self.cam_roll}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
 
     def on_key_press(self, event):
 
@@ -200,15 +200,16 @@ class Canvas(app.Canvas):
             tx = -self.step_t_fast
 
         # move in the direction of the view 
-        tx,ty,tz,_ = rotate(self.cam_pitch, (1, 0, 0)).dot(rotate(self.cam_yaw, (0, 1, 0))) @ np.array((tx,ty,tz,1.0))
+        tx,ty,tz,_ = rotate(self.cam_yaw, (0, 1, 0)).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0))) @ np.array((tx,ty,tz,1.0))
 
         self.cam_x += tx
         self.cam_y += ty
         self.cam_z += tz
 
-        self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_pitch, (1, 0, 0))).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(0,(0, 0, 1)))
+        self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
         self.cylinder_program['u_view'] = self.view
         self.floor_program['u_view'] = self.view
+        print(f'Yaw: {self.cam_yaw}, Pitch: {self.cam_pitch}, Roll: {self.cam_roll}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
 
     def on_resize(self, event):
         width, height = event.size
