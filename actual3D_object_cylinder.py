@@ -64,7 +64,7 @@ void main()
 
 class Canvas(app.Canvas):
     def __init__(self):
-        app.Canvas.__init__(self, size=(1280,720), fullscreen=True, keys='interactive')
+        app.Canvas.__init__(self, size=(1280,720), fullscreen=False, keys='interactive')
 
         # mesh
         mesh_data = create_cylinder(rows=10, cols = 36)
