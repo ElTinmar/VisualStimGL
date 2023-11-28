@@ -85,6 +85,7 @@ class Canvas(app.Canvas):
         self.cam_pitch = 0.0
         self.cam_roll = 0.0
         # NOTE: Euler angles suffer from gimbal lock, the order of euler rotation matters
+        # you can get rid of gimbal lock with quaternions
 
         # perspective frustum
         self.z_near = 0.1
