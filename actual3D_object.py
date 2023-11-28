@@ -10,16 +10,25 @@ import time
 use(gl='gl+')
 
 VERT_SHADER_CYLINDER ="""
-attribute vec3 a_position;
-attribute vec4 a_color;
-attribute vec3 a_normal;
+// uniforms
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
+
+// per-vertex attributes
+attribute vec3 a_position;
+attribute vec4 a_color;
+attribute vec3 a_normal;
+
+// per-instance attributes
+attribute vec3 instance_shift;
+
+// varying
 varying vec4 v_color;
+
 void main()
 {
-    gl_Position = u_projection * u_view * u_model * vec4(a_position,1.0);
+    gl_Position = u_projection * u_view * u_model * vec4(a_position + instance_shift,1.0);
     v_color = a_color;
 }
 """
@@ -61,6 +70,7 @@ class Canvas(app.Canvas):
     def __init__(self):
         app.Canvas.__init__(self, size=(1280,720), fullscreen=False, keys='interactive')
 
+        # mesh and parameters
         mesh_data = create_cylinder(rows=10, cols = 36)
         self.phi, self.theta = 60, 20
         self.step_t = 0.1
@@ -79,13 +89,11 @@ class Canvas(app.Canvas):
         self.cylinder_model = rotate(self.theta, (0, 0, 1)).dot(rotate(self.phi, (0, 1, 0)))
         self.floor_model = translate((0,0,0))
 
-        # FLOOR
+        # floor
         self.floor_program = gloo.Program(VERT_SHADER_FLOOR, FRAG_SHADER_FLOOR)
         self.floor_program["a_position"] = [(-1,-1,-1),(-1,-1,1),(1,-1,-1),(1,-1,1)]
-        self.floor_program["u_view"] = self.view
-        self.floor_program["u_model"] = self.floor_model
 
-        # CYLINDER
+        # cylinder
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         positions = mesh_data.get_vertices()
         print(positions)
@@ -103,16 +111,24 @@ class Canvas(app.Canvas):
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program["u_model"] = self.cylinder_model
-        self.cylinder_program["u_view"] = self.view
 
-        # projection 
+        # instances
+        instance_shift = gloo.VertexBuffer([(-2,-1,-2),(-2,-1,2),(2,-1,2),(2,-1,-2)], divisor=1)
+        self.cylinder_program['instance_shift'] = instance_shift
+
+        # model, view, projection 
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
         projection = perspective(self.fovy, width / float(height), self.z_near, self.z_far)
-        self.cylinder_program['u_projection'] = projection
+
+        self.floor_program["u_view"] = self.view
+        self.floor_program["u_model"] = self.floor_model
         self.floor_program['u_projection'] = projection
 
+        self.cylinder_program["u_view"] = self.view
+        self.cylinder_program["u_model"] = self.cylinder_model
+        self.cylinder_program['u_projection'] = projection
+        
         # required for object in the Z axis to hide each other
         gloo.set_state(depth_test=True) 
 
@@ -196,7 +212,7 @@ class Canvas(app.Canvas):
         self.theta += .5
         self.phi += .5
         self.cylinder_model = rotate(self.theta, (0, 1, 0)).dot(rotate(self.phi, (0, 0, 1)))
-        self.cylinder_program['u_model'] = self.cylinder_model
+        #self.cylinder_program['u_model'] = self.cylinder_model
         self.update()
 
 if __name__ == '__main__':
