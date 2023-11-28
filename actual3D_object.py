@@ -62,9 +62,6 @@ void main()
 }
 """
 
-# TODO use instance rendering to display multiple cylinders
-# TODO use keyboard + mouse to control the view matrix
-
 class Canvas(app.Canvas):
     def __init__(self):
         app.Canvas.__init__(self, size=(1280,720), fullscreen=False, keys='interactive')
