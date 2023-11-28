@@ -70,33 +70,40 @@ class Canvas(app.Canvas):
     def __init__(self):
         app.Canvas.__init__(self, size=(1280,720), fullscreen=False, keys='interactive')
 
-        # mesh and parameters
+        # mesh
         mesh_data = create_cylinder(rows=10, cols = 36)
-        self.phi, self.theta = 60, 20
+
+        # rotation and translation gain
         self.step_t = 0.1
         self.step_t_fast = 0.2
         self.step_r = 0.1
+
+        # camera location and rotation
         self.cam_x = 0
         self.cam_y = 0
         self.cam_z = -5
-        self.cam_phi = 0
-        self.cam_theta = 0
+        self.cam_yaw = 0.0
+        self.cam_pitch = 0.0
+        self.cam_roll = 0.0
+
+        # perspective frustum
         self.z_near = 0.1
-        self.z_far = 100
+        self.z_far = 1000
         self.fovy = 90
+
+        # store last mouse position
         self.last_mouse_pos = None
-        self.view = translate((self.cam_x, self.cam_y, self.cam_z))
-        self.cylinder_model = rotate(self.theta, (0, 0, 1)).dot(rotate(self.phi, (0, 1, 0)))
-        self.floor_model = translate((0,0,0))
 
         # floor
         self.floor_program = gloo.Program(VERT_SHADER_FLOOR, FRAG_SHADER_FLOOR)
-        self.floor_program["a_position"] = [(-1,-1,-1),(-1,-1,1),(1,-1,-1),(1,-1,1)]
+        self.floor_program["a_position"] = [(-100,-1,-100),(-100,-1,100),(100,-1,-100),(100,-1,100)]
 
         # cylinder
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         positions = mesh_data.get_vertices()
-        print(positions)
+        positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
+        positions = positions.dot(rotate(90, (1,0,0)))
+        positions = positions[:,:-1]
         normals =  mesh_data.get_vertex_normals()
         col = np.array([1.0, 0.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
@@ -117,6 +124,10 @@ class Canvas(app.Canvas):
         self.cylinder_program['instance_shift'] = instance_shift
 
         # model, view, projection 
+        self.view = translate((self.cam_x, self.cam_y, self.cam_z))
+        self.cylinder_model = translate((0,1,0))
+        self.floor_model = translate((0,0,0))
+
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
         projection = perspective(self.fovy, width / float(height), self.z_near, self.z_far)
@@ -154,16 +165,16 @@ class Canvas(app.Canvas):
 
         dx = x-x0
         dy = y-y0
-        self.cam_theta += self.step_r*dx
-        self.cam_phi = max(min(self.cam_phi + self.step_r*dy, 90), -90)
+        self.cam_yaw += self.step_r*dx
+        self.cam_pitch = max(min(self.cam_pitch + self.step_r*dy, 90), -90)
 
-        self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_phi, (1, 0, 0))).dot(rotate(self.cam_theta, (0, 1, 0)))
+        self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_pitch, (1, 0, 0))).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1)))
         self.cylinder_program['u_view'] = self.view      
         self.floor_program['u_view'] = self.view
 
         self.native.cursor().setPos(self.native.mapToGlobal(QPoint(w//2,h//2))) 
 
-        print(f'Theta: {self.cam_theta}, phi: {self.cam_phi}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
+        print(f'Theta: {self.cam_yaw}, phi: {self.cam_pitch}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
 
     def on_key_press(self, event):
 
@@ -189,13 +200,13 @@ class Canvas(app.Canvas):
             tx = -self.step_t_fast
 
         # move in the direction of the view 
-        tx,ty,tz,_ = rotate(self.cam_phi, (1, 0, 0)).dot(rotate(self.cam_theta, (0, 1, 0))) @ np.array((tx,ty,tz,1.0))
+        tx,ty,tz,_ = rotate(self.cam_pitch, (1, 0, 0)).dot(rotate(self.cam_yaw, (0, 1, 0))) @ np.array((tx,ty,tz,1.0))
 
         self.cam_x += tx
         self.cam_y += ty
         self.cam_z += tz
 
-        self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_phi, (1, 0, 0))).dot(rotate(self.cam_theta, (0, 1, 0)))
+        self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_pitch, (1, 0, 0))).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(0,(0, 0, 1)))
         self.cylinder_program['u_view'] = self.view
         self.floor_program['u_view'] = self.view
 
@@ -209,10 +220,7 @@ class Canvas(app.Canvas):
         self.cylinder_program.draw('triangles', self.indices)
 
     def on_timer(self, event):
-        self.theta += .5
-        self.phi += .5
-        self.cylinder_model = rotate(self.theta, (0, 1, 0)).dot(rotate(self.phi, (0, 0, 1)))
-        #self.cylinder_program['u_model'] = self.cylinder_model
+        # change the model or view here to create custom animations
         self.update()
 
 if __name__ == '__main__':
