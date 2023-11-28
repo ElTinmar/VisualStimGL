@@ -113,6 +113,9 @@ class Canvas(app.Canvas):
         self.cylinder_program['u_projection'] = projection
         self.floor_program['u_projection'] = projection
 
+        # required for object in the Z axis to hide each other
+        gloo.set_state(depth_test=True) 
+
         # hide cursor
         self.native.setCursor(Qt.BlankCursor)
 
@@ -185,8 +188,9 @@ class Canvas(app.Canvas):
         gloo.set_viewport(0, 0, width, height)
 
     def on_draw(self, event):
-        self.cylinder_program.draw('triangles', self.indices)
+        gloo.clear(color=True, depth=True)
         self.floor_program.draw('triangle_strip')
+        self.cylinder_program.draw('triangles', self.indices)
 
     def on_timer(self, event):
         self.theta += .5
