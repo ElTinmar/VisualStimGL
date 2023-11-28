@@ -199,7 +199,8 @@ class Canvas(app.Canvas):
         elif event.text == 'D':
             tx = -self.step_t_fast
 
-        # move in the direction of the view 
+        # move in the direction of the view
+        # NOTE: this code doesn't register two keys  at the same time. If it did you would be moving faster diagonally (need to normalize the vector)
         tx,ty,tz,_ = rotate(self.cam_yaw, (0, 1, 0)).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0))) @ np.array((tx,ty,tz,1.0))
 
         self.cam_x += tx
