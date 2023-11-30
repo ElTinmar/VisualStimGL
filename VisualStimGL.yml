@@ -2,9 +2,9 @@ name: VisualStimGL
 channels:
   - conda-forge
 dependencies:
-  - python == 3.8
+  - python == 3.8.16
   - ipython
-  - pyqt5
+  - pyqt
   - numpy
   - vispy
   - pip
