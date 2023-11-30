@@ -4,13 +4,14 @@ channels:
 dependencies:
   - python == 3.8
   - ipython
+  - pyqt5
+  - numpy
+  - vispy
   - pip
   - pip:
-    - PyQt5
     - pytest
     - matplotlib
     - PyOpenGL 
     - PyOpenGL_accelerate
-  - numpy
-  - vispy
+ 
 
