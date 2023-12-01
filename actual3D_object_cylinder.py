@@ -54,21 +54,21 @@ void main()
     float z1 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) - (z_f - z_v) * squareroot);
 
     // find correct solution
-    if ((x0 - x_f)/(x_v -x_f) > 0) {
+    if ((x0 - x_f)/(x_v -x_f) >= 0) {
         float x = x0;
     }
     else {
         float x = x1;
     }
 
-    if ((y0 - y_f)/(y_v - y_f) > 0) {
+    if ((y0 - y_f)/(y_v - y_f) >= 0) {
         float y = y0;
     }
     else {
         float y = y1;
     }
 
-    if ((z0 - z_f)/(z_v -z_f) > 0) {
+    if ((z0 - z_f)/(z_v -z_f) >= 0) {
         float z = z0;
     }
     else {
