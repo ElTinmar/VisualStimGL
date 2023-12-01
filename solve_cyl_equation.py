@@ -18,7 +18,6 @@ solutions[0][x]
 solutions[1][x]
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 x_v = 0.5
 y_v = 0
@@ -38,3 +37,11 @@ y0 = 1/denominator * (x_f*x_f*y_v + x_f*x_v*y_f - x_f*x_v*y_v + x_v*x_v*y_f - y_
 y1 = 1/denominator * (x_f*x_f*y_v + x_f*x_v*y_f - x_f*x_v*y_v + x_v*x_v*y_f - y_f*z_f*z_v + y_f*z_v*z_v - y_f*squareroot + y_v*z_f*z_f - y_v*z_f*z_v + y_v*squareroot)
 z0 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) + (z_f - z_v) * squareroot)
 z1 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) - (z_f - z_v) * squareroot)
+
+sol0 = np.array([x0,y0,z0])
+sol1 = np.array([x1,y1,z1])
+fish = np.array([x_f,y_f,z_f])
+vertex = np.array([x_v,y_v,z_v])
+
+np.dot(sol0-fish,vertex-fish)
+np.dot(sol1-fish,vertex-fish)
