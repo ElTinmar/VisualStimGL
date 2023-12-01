@@ -44,7 +44,7 @@ void main()
     float r = a_cylinder_radius;
 
     // project vertex on cylinder
-    float denominator = (x_f*x_f - 2* x_f*x_v * x_v*x_v + z_f*z_f - 2*z_f*z_v + z_v*z_v);
+    float denominator = (x_f*x_f - 2*x_f*x_v + x_v*x_v + z_f*z_f - 2*z_f*z_v + z_v*z_v);
     float squareroot = sqrt(r*r*x_f*x_f - 2*r*r*x_f*x_v + r*r*x_v*x_v + r*r*z_f*z_f - 2*r*r*z_f*z_v + r*r*z_v*z_v - x_f*x_f*z_v*z_v + 2*x_f*x_v*z_f*z_v - x_v*x_v*z_f*z_f);
     float x0 = 1/denominator * (-x_f*z_f*z_v + x_f*z_v*z_v + x_f*squareroot + x_v*z_f*z_f - x_v*z_f*z_v - x_v*squareroot);
     float x1 = 1/denominator * (-x_f*z_f*z_v + x_f*z_v*z_v - x_f*squareroot + x_v*z_f*z_f - x_v*z_f*z_v + x_v*squareroot);
@@ -54,30 +54,13 @@ void main()
     float z1 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) - (z_f - z_v) * squareroot);
 
     // find correct solution
-    if ((x0 - x_f)/(x_v -x_f) >= 0) {
-        float x = x0;
-    }
-    else {
-        float x = x1;
-    }
-
-    if ((y0 - y_f)/(y_v - y_f) >= 0) {
-        float y = y0;
-    }
-    else {
-        float y = y1;
-    }
-
-    if ((z0 - z_f)/(z_v -z_f) >= 0) {
-        float z = z0;
-    }
-    else {
-        float z = z1;
-    }
+    vec3 sol0 = vec3(x0,y0,z0);
+    vec3 sol1 = vec3(x1,y1,z1);
+    vec3 sol = sol0;
+    if (dot(sol0-a_fish, vertex_coords.xyz-a_fish) >= 0) {vec3 sol = sol0;} else {vec3 sol = sol1;}
     
-
     // view and projection
-    gl_Position = u_projection * u_view * vec4(x,y,z,1.0);
+    gl_Position = u_projection * u_view * vec4(sol,1.0);
     v_color = a_color;
 }
 """
@@ -114,7 +97,7 @@ void main()
 
 class Canvas(app.Canvas):
     def __init__(self):
-        app.Canvas.__init__(self, size=(1280,720), fullscreen=False, keys='interactive')
+        app.Canvas.__init__(self, size=(1280,720), fullscreen=True, keys='interactive')
 
         # mesh
         mesh_data = create_cylinder(rows=10, cols = 36)
@@ -135,9 +118,9 @@ class Canvas(app.Canvas):
         # You can get rid of gimbal lock with quaternions
 
         # perspective frustum
-        self.z_near = 0.001
+        self.z_near = 0.1
         self.z_far = 1000
-        self.fovy = 65
+        self.fovy = 90
 
         # store last mouse position
         self.last_mouse_pos = None
