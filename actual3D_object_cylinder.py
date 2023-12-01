@@ -16,8 +16,8 @@ uniform mat4 u_projection;
 
 // per-vertex attributes
 attribute vec3 a_position;
-attribute vec3 a_fish
-attribute float a_cylinder_radius
+attribute vec3 a_fish;
+attribute float a_cylinder_radius;
 attribute vec4 a_color;
 attribute vec3 a_normal;
 
@@ -46,9 +46,35 @@ void main()
     // project vertex on cylinder
     float denominator = (x_f*x_f - 2* x_f*x_v * x_v*x_v + z_f*z_f - 2*z_f*z_v + z_v*z_v);
     float squareroot = sqrt(r*r*x_f*x_f - 2*r*r*x_f*x_v + r*r*x_v*x_v + r*r*z_f*z_f - 2*r*r*z_f*z_v + r*r*z_v*z_v - x_f*x_f*z_v*z_v + 2*x_f*x_v*z_f*z_v - x_v*x_v*z_f*z_f);
-    float x = 1/denominator * (-x_f*z_f*z_v + x_f*z_v*z_v + x_f*squareroot + x_v*z_f*z_f - x_v*z_f*z_v - x_v*squareroot);
-    float y = 1/denominator * (x_f*x_f*y_v + x_f*x_v*y_f - x_f*x_v*y_v + x_v*x_v*y_f - y_f*z_f*z_v + y_f*z_v*z_v + y_f*squareroot + y_v*z_f*z_f - y_v*z_f*z_v - y_v*squareroot);
-    float z = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) + (z_f - z_v) * squareroot);
+    float x0 = 1/denominator * (-x_f*z_f*z_v + x_f*z_v*z_v + x_f*squareroot + x_v*z_f*z_f - x_v*z_f*z_v - x_v*squareroot);
+    float x1 = 1/denominator * (-x_f*z_f*z_v + x_f*z_v*z_v - x_f*squareroot + x_v*z_f*z_f - x_v*z_f*z_v + x_v*squareroot);
+    float y0 = 1/denominator * (x_f*x_f*y_v + x_f*x_v*y_f - x_f*x_v*y_v + x_v*x_v*y_f - y_f*z_f*z_v + y_f*z_v*z_v + y_f*squareroot + y_v*z_f*z_f - y_v*z_f*z_v - y_v*squareroot);
+    float y1 = 1/denominator * (x_f*x_f*y_v + x_f*x_v*y_f - x_f*x_v*y_v + x_v*x_v*y_f - y_f*z_f*z_v + y_f*z_v*z_v - y_f*squareroot + y_v*z_f*z_f - y_v*z_f*z_v + y_v*squareroot);
+    float z0 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) + (z_f - z_v) * squareroot);
+    float z1 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) - (z_f - z_v) * squareroot);
+
+    // find correct solution
+    if ((x0 - x_f)/(x_v -x_f) > 0) {
+        float x = x0;
+    }
+    else {
+        float x = x1;
+    }
+
+    if ((y0 - y_f)/(y_v - y_f) > 0) {
+        float y = y0;
+    }
+    else {
+        float y = y1;
+    }
+
+    if ((z0 - z_f)/(z_v -z_f) > 0) {
+        float z = z0;
+    }
+    else {
+        float z = z1;
+    }
+    
 
     // view and projection
     gl_Position = u_projection * u_view * vec4(x,y,z,1.0);
@@ -109,9 +135,9 @@ class Canvas(app.Canvas):
         # You can get rid of gimbal lock with quaternions
 
         # perspective frustum
-        self.z_near = 0.1
+        self.z_near = 0.001
         self.z_far = 1000
-        self.fovy = 90
+        self.fovy = 65
 
         # store last mouse position
         self.last_mouse_pos = None

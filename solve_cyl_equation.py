@@ -13,4 +13,6 @@ equations = [
     x**2 +  z**2 - r**2 # on cylinder of radius r
 ]
 solutions = solve(equations, [x,y,z], dict=True)
-solutions[1]
+
+solutions[0][x]
+solutions[1][x]
