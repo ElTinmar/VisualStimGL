@@ -16,6 +16,8 @@ uniform mat4 u_projection;
 
 // per-vertex attributes
 attribute vec3 a_position;
+attribute vec3 a_fish
+attribute float a_cylinder_radius
 attribute vec4 a_color;
 attribute vec3 a_normal;
 
@@ -27,7 +29,29 @@ varying vec4 v_color;
 
 void main()
 {
-    gl_Position = u_projection * u_view * u_model * vec4(a_position + instance_shift,1.0);
+    // vertex coords
+    vec4 vertex_coords = u_model * vec4(a_position+instance_shift,1.0);
+    float x_v = vertex_coords.x;
+    float y_v = vertex_coords.y;
+    float z_v = vertex_coords.z;
+
+    // fish coords
+    float x_f = a_fish.x;
+    float y_f = a_fish.y;
+    float z_f = a_fish.z;
+
+    // cylinder radius
+    float r = a_cylinder_radius;
+
+    // project vertex on cylinder
+    float denominator = (x_f*x_f - 2* x_f*x_v * x_v*x_v + z_f*z_f - 2*z_f*z_v + z_v*z_v);
+    float squareroot = sqrt(r*r*x_f*x_f - 2*r*r*x_f*x_v + r*r*x_v*x_v + r*r*z_f*z_f - 2*r*r*z_f*z_v + r*r*z_v*z_v - x_f*x_f*z_v*z_v + 2*x_f*x_v*z_f*z_v - x_v*x_v*z_f*z_f);
+    float x = 1/denominator * (-x_f*z_f*z_v + x_f*z_v*z_v + x_f*squareroot + x_v*z_f*z_f - x_v*z_f*z_v - x_v*squareroot);
+    float y = 1/denominator * (x_f*x_f*y_v + x_f*x_v*y_f - x_f*x_v*y_v + x_v*x_v*y_f - y_f*z_f*z_v + y_f*z_v*z_v + y_f*squareroot + y_v*z_f*z_f - y_v*z_f*z_v - y_v*squareroot);
+    float z = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) + (z_f - z_v) * squareroot);
+
+    // view and projection
+    gl_Position = u_projection * u_view * vec4(x,y,z,1.0);
     v_color = a_color;
 }
 """
@@ -116,6 +140,8 @@ class Canvas(app.Canvas):
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
         self.cylinder_program.bind(vbo)
+        self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
+        self.cylinder_program['a_cylinder_radius'] = 10
 
         # instances
         instance_shift = gloo.VertexBuffer([(-2,-1,-2),(-2,-1,2),(2,-1,2),(2,-1,-2)], divisor=1)
@@ -211,6 +237,7 @@ class Canvas(app.Canvas):
 
             self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
             self.cylinder_program['u_view'] = self.view
+            self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
             self.floor_program['u_view'] = self.view
             #print(f'Yaw: {self.cam_yaw}, Pitch: {self.cam_pitch}, Roll: {self.cam_roll}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
 

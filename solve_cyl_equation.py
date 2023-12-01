@@ -2,10 +2,10 @@ from sympy import solve, symbols, init_printing
 
 init_printing()
 
-r = symbols('r', constant=True)
-x_f, y_f, z_f = symbols('x_f, y_f, z_f', constant=True)
-x_v, y_v, z_v = symbols('x_v, y_v, z_v', constant=True)
 x, y, z = symbols('x, y, z')
+r = symbols('r', constant=True)
+x_v, y_v, z_v = symbols('x_v, y_v, z_v', constant=True)
+x_f, y_f, z_f = symbols('x_f, y_f, z_f', constant=True)
 
 equations = [
     (x - x_f)/(x_v -x_f) - (y - y_f)/(y_v - y_f), # on straight line between vertex and fish
