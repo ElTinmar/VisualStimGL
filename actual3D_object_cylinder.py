@@ -53,7 +53,7 @@ void main()
     float z0 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) + (z_f - z_v) * squareroot);
     float z1 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) - (z_f - z_v) * squareroot);
 
-    // find correct solution
+    // find correct solution (that does not seem to work)
     vec3 sol0 = vec3(x0,y0,z0);
     vec3 sol1 = vec3(x1,y1,z1);
     vec3 sol = sol0;
@@ -150,15 +150,15 @@ class Canvas(app.Canvas):
         self.indices = gloo.IndexBuffer(indices)
         self.cylinder_program.bind(vbo)
         self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
-        self.cylinder_program['a_cylinder_radius'] = 10
+        self.cylinder_program['a_cylinder_radius'] = 100
 
         # instances
-        instance_shift = gloo.VertexBuffer([(-2,-1,-2),(-2,-1,2),(2,-1,2),(2,-1,-2)], divisor=1)
+        instance_shift = gloo.VertexBuffer([(-2,0,-2),(-2,0,2),(2,0,2),(2,0,-2)], divisor=1)
         self.cylinder_program['instance_shift'] = instance_shift
 
         # model, view, projection 
         self.view = translate((self.cam_x, self.cam_y, self.cam_z))
-        self.cylinder_model = translate((0,1,0))
+        self.cylinder_model = translate((0,0,0))
         self.floor_model = translate((0,0,0))
 
         width, height = self.physical_size
@@ -261,6 +261,8 @@ class Canvas(app.Canvas):
 
     def on_timer(self, event):
         # change the model or view here to create custom animations
+        # self.cylinder_model = self.cylinder_model.dot(rotate(1,(1,0,0)))
+        # self.cylinder_program["u_model"] = self.cylinder_model
         self.update()
 
 if __name__ == '__main__':

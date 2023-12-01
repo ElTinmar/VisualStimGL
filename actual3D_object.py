@@ -118,12 +118,12 @@ class Canvas(app.Canvas):
         self.cylinder_program.bind(vbo)
 
         # instances
-        instance_shift = gloo.VertexBuffer([(-2,-1,-2),(-2,-1,2),(2,-1,2),(2,-1,-2)], divisor=1)
+        instance_shift = gloo.VertexBuffer([(-2,0,-2),(-2,0,2),(2,0,2),(2,0,-2)], divisor=1)
         self.cylinder_program['instance_shift'] = instance_shift
 
         # model, view, projection 
         self.view = translate((self.cam_x, self.cam_y, self.cam_z))
-        self.cylinder_model = translate((0,1,0))
+        self.cylinder_model = translate((0,0,0))
         self.floor_model = translate((0,0,0))
 
         width, height = self.physical_size
