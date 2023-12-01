@@ -53,11 +53,11 @@ void main()
     float z0 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) + (z_f - z_v) * squareroot);
     float z1 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) - (z_f - z_v) * squareroot);
 
-    // find correct solution (that does not seem to work)
+    // find correct solution
     vec3 sol0 = vec3(x0,y0,z0);
     vec3 sol1 = vec3(x1,y1,z1);
     vec3 sol = sol0;
-    if (dot(sol0-a_fish, vertex_coords.xyz-a_fish) >= 0) {vec3 sol = sol0;} else {vec3 sol = sol1;}
+    if (dot(sol0-a_fish, vertex_coords.xyz-a_fish) >= 0) {vec3 sol = sol0;} else {vec3 sol = sol1;} // that does not work
     
     // view and projection
     gl_Position = u_projection * u_view * vec4(sol,1.0);
