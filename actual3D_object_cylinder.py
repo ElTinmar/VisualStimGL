@@ -58,7 +58,7 @@ void main()
     vec3 sol0 = vec3(x0,y0,z0);
     vec3 sol1 = vec3(x1,y1,z1);
     float dir = dot(sol0-a_fish, vertex_coords.xyz-a_fish);
-    dir <= 0.0f ? sol = sol0 : sol = sol1;
+    dir < 0.0f ? sol = sol0 : sol = sol1; // this should be >=, why is it not ?
     
     // view and projection
     gl_Position = u_projection * u_view * vec4(sol,1.0);
