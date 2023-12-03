@@ -200,7 +200,7 @@ class Canvas(app.Canvas):
         dx = x-x0
         dy = y-y0
         self.cam_yaw += self.step_r*dx
-        self.cam_pitch = max(min(self.cam_pitch + self.step_r*dy, 90), -90)
+        #self.cam_pitch = max(min(self.cam_pitch + self.step_r*dy, 90), -90)
 
         self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
         self.cylinder_program['u_view'] = self.view      
