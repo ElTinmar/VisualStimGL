@@ -54,10 +54,10 @@ void main()
     float z1 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) + (z_f - z_v) * squareroot);
 
     // find correct solution
+    vec3 sol;
     vec3 sol0 = vec3(x0,y0,z0);
     vec3 sol1 = vec3(x1,y1,z1);
     float dir = dot(sol0-a_fish, vertex_coords.xyz-a_fish);
-    vec3 sol;
     dir >= 0.0f ? sol = sol0 : sol = sol1;
     
     // view and projection
