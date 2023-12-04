@@ -112,7 +112,7 @@ varying float v_depth;
 void main()
 {
     gl_FragColor = v_color;
-    gl_FragDepth = v_depth;
+    gl_FragDepth = v_depth; // this disables early depth testing and comes at a perf cost
 }
 """
 
@@ -180,7 +180,7 @@ class Canvas(app.Canvas):
         self.indices = gloo.IndexBuffer(indices)
         self.cylinder_program.bind(vbo)
         self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
-        self.cylinder_program['a_cylinder_radius'] = 100
+        self.cylinder_program['a_cylinder_radius'] = 10
 
         # instances
         instance_shift = gloo.VertexBuffer([(-2,1,-2),(-2,1,2),(2,1,2),(2,1,-2)], divisor=1)
