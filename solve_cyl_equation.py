@@ -122,3 +122,25 @@ vertex = np.array([x_v,y_v,z_v])
 
 np.dot(sol0-fish,vertex-fish)
 np.dot(sol1-fish,vertex-fish)
+
+# factorized
+
+# helpful variables;
+x_ = x_f-x_v
+y_ = y_f-y_v
+z_ = z_f-z_v
+xz_ = (x_f*z_v - x_v*z_f)
+xy_ = (x_f*y_v - x_v*y_f)
+d = x_*x_ + z_*z_
+s = np.sqrt(r*r*d - xz_*xz_)
+
+# projection to cylinder
+x0 = 1/d * (x_v*(z_f*z_ + s) - x_f*(z_v*z_ + s))
+x1 = 1/d * (x_v*(z_f*z_ - s) - x_f*(z_v*z_ - s))
+y0 = 1/d * (x_*xy_ + y_v * (z_f*z_ + s) - y_f * (z_v*z_ + s))
+y1 = 1/d * (x_*xy_ + y_v * (z_f*z_ - s) - y_f * (z_v*z_ - s))
+z0 = 1/d * (x_*xz_ - z_*s)
+z1 = 1/d * (x_*xz_ + z_*s)
+
+sol0 = np.array([x0,y0,z0])
+sol1 = np.array([x1,y1,z1])
