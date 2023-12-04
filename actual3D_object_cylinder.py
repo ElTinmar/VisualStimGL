@@ -44,7 +44,7 @@ vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
 
     // project vertex on cylinder
     float denominator = (
-        x_f*x_f 
+        + x_f*x_f 
         - 2*x_f*x_v 
         + x_v*x_v 
         + z_f*z_f 
@@ -53,7 +53,7 @@ vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     );
 
     float squareroot = sqrt(
-        r*r*x_f*x_f 
+        + r*r*x_f*x_f 
         - 2*r*r*x_f*x_v 
         + r*r*x_v*x_v 
         + r*r*z_f*z_f 
@@ -65,7 +65,7 @@ vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     );
 
     float x0 = 1/denominator * (
-        -x_f*z_f*z_v 
+        - x_f*z_f*z_v 
         + x_f*z_v*z_v 
         - x_f*squareroot 
         + x_v*z_f*z_f 
@@ -73,7 +73,7 @@ vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
         + x_v*squareroot
     );
     float x1 = 1/denominator * (
-        -x_f*z_f*z_v 
+        - x_f*z_f*z_v 
         + x_f*z_v*z_v 
         + x_f*squareroot 
         + x_v*z_f*z_f 
@@ -82,8 +82,8 @@ vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     );
 
     float y0 = 1/denominator * (
-        x_f*x_f*y_v 
-        + x_f*x_v*y_f 
+        + x_f*x_f*y_v 
+        - x_f*x_v*y_f 
         - x_f*x_v*y_v 
         + x_v*x_v*y_f 
         - y_f*z_f*z_v 
@@ -94,8 +94,8 @@ vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
         + y_v*squareroot
     );
     float y1 = 1/denominator * (
-        x_f*x_f*y_v 
-        + x_f*x_v*y_f 
+        + x_f*x_f*y_v 
+        - x_f*x_v*y_f 
         - x_f*x_v*y_v 
         + x_v*x_v*y_f 
         - y_f*z_f*z_v 
@@ -107,11 +107,11 @@ vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     );
 
     float z0 = 1/denominator * (
-        (x_f - x_v)*(x_f*z_v - x_v*z_f) 
+        + (x_f - x_v)*(x_f*z_v - x_v*z_f) 
         - (z_f - z_v)*squareroot
     );
     float z1 = 1/denominator * (
-        (x_f - x_v)*(x_f*z_v - x_v*z_f) 
+        + (x_f - x_v)*(x_f*z_v - x_v*z_f) 
         + (z_f - z_v)*squareroot
     );
 
