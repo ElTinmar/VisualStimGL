@@ -65,7 +65,7 @@ vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     float z0 = 1/d * (x_*xz_ - z_*s);
     float z1 = 1/d * (x_*xz_ + z_*s);
 
-    // find correct solution: fish->vertex and fish->cylinder vectors should be in same dir
+    // find correct solution: fish->vertex and fish->cylinder vectors should be in same direction
     vec3 sol0 = vec3(x0, y0, z0);
     vec3 sol1 = vec3(x1, y1, z1);
     vec3 sol;
@@ -160,7 +160,7 @@ class Canvas(app.Canvas):
         col = np.array([1.0, 0.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
         colors[positions[:,0]<0] = np.array([0.0, 0.0, 1.0, 1.0])
-        
+
         vtype = [('a_position', np.float32, 3),
              ('a_normal', np.float32, 3),
              ('a_color', np.float32, 4)]
