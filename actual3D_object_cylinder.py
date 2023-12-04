@@ -70,7 +70,7 @@ vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     vec3 sol1 = vec3(x1, y1, z1);
     vec3 sol;
     float dir = dot(sol0-fish_pos, vertex_pos-fish_pos);
-    dir < 0.0f ? sol = sol0 : sol = sol1; // this should be >=, why is it not ?
+    dir > 0.0f ? sol = sol0 : sol = sol1; // this should be >=, why is it not ?
 
     return sol;
 } 
@@ -118,7 +118,7 @@ void main()
 
 class Canvas(app.Canvas):
     def __init__(self):
-        app.Canvas.__init__(self, size=(1280,720), fullscreen=True, keys='interactive')
+        app.Canvas.__init__(self, size=(1280,720), fullscreen=False, keys='interactive')
 
         # mesh
         mesh_data = create_cylinder(rows=10, cols = 36)
@@ -130,8 +130,8 @@ class Canvas(app.Canvas):
 
         # camera location and rotation
         self.cam_x = 0
-        self.cam_y = 0
-        self.cam_z = -5
+        self.cam_y = 0.1
+        self.cam_z = 5
         self.cam_yaw = 0.0
         self.cam_pitch = 0.0
         self.cam_roll = 0.0
@@ -174,11 +174,11 @@ class Canvas(app.Canvas):
         self.cylinder_program['a_cylinder_radius'] = 100
 
         # instances
-        instance_shift = gloo.VertexBuffer([(-2,0,-2),(-2,0,2),(2,0,2),(2,0,-2)], divisor=1)
+        instance_shift = gloo.VertexBuffer([(-2,1,-2),(-2,1,2),(2,1,2),(2,1,-2)], divisor=1)
         self.cylinder_program['instance_shift'] = instance_shift
 
         # model, view, projection 
-        self.view = translate((self.cam_x, self.cam_y, self.cam_z))
+        self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
         self.cylinder_model = translate((0,0,0))
         self.floor_model = translate((0,0,0))
 
@@ -222,7 +222,7 @@ class Canvas(app.Canvas):
         self.cam_yaw += self.step_r*dx
         #self.cam_pitch = max(min(self.cam_pitch + self.step_r*dy, 90), -90)
 
-        self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
+        self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
         self.cylinder_program['u_view'] = self.view      
         self.floor_program['u_view'] = self.view
 
@@ -242,17 +242,17 @@ class Canvas(app.Canvas):
             step = self.step_t
 
         if event.key == 'W':
-            tz = 1
-        elif event.key == 'A':
-            tx = 1
-        elif event.key == 'S':
             tz = -1
-        elif event.key == 'D':
+        elif event.key == 'A':
             tx = -1
+        elif event.key == 'S':
+            tz = 1
+        elif event.key == 'D':
+            tx = 1
         elif event.key == 'Up':
-            ty = -1
-        elif event.key == 'Down':
             ty = 1
+        elif event.key == 'Down':
+            ty = -1
 
         # move in the direction of the view
         t_vec = np.array((tx,ty,tz))
@@ -265,7 +265,7 @@ class Canvas(app.Canvas):
             self.cam_y += ty
             self.cam_z += tz
 
-            self.view = translate((self.cam_x, self.cam_y, self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
+            self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
             self.cylinder_program['u_view'] = self.view
             self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
             self.floor_program['u_view'] = self.view
