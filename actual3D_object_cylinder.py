@@ -27,18 +27,17 @@ attribute vec3 instance_shift;
 // varying
 varying vec4 v_color;
 
-void main()
-{
+vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
+
     // vertex coords
-    vec4 vertex_coords = u_model * vec4(a_position+instance_shift,1.0);
-    float x_v = vertex_coords.x;
-    float y_v = vertex_coords.y;
-    float z_v = vertex_coords.z;
+    float x_v = vertex_pos.x;
+    float y_v = vertex_pos.y;
+    float z_v = vertex_pos.z;
 
     // fish coords
-    float x_f = a_fish.x;
-    float y_f = a_fish.y;
-    float z_f = a_fish.z;
+    float x_f = fish_pos.x;
+    float y_f = fish_pos.y;
+    float z_f = fish_pos.z;
 
     // cylinder radius
     float r = a_cylinder_radius;
@@ -53,12 +52,22 @@ void main()
     float z0 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) - (z_f - z_v) * squareroot);
     float z1 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) + (z_f - z_v) * squareroot);
 
+    vec3[2] sol;
+    sol[0] = vec3(x0, y0, z0);
+    sol[1] = vec3(x1, y1, z1);
+    return sol;
+} 
+
+void main()
+{
+    // project to cylinder
+    vec4 vertex_coords = u_model * vec4(a_position+instance_shift,1.0);
+    vec3[2] proj = cylinder_proj(a_fish, vertex_coords.xyz, a_cylinder_radius);
+
     // find correct solution
     vec3 sol;
-    vec3 sol0 = vec3(x0,y0,z0);
-    vec3 sol1 = vec3(x1,y1,z1);
-    float dir = dot(sol0-a_fish, vertex_coords.xyz-a_fish);
-    dir < 0.0f ? sol = sol0 : sol = sol1; // this should be >=, why is it not ?
+    float dir = dot(proj[0]-a_fish, vertex_coords.xyz-a_fish);
+    dir < 0.0f ? sol = proj[0] : sol = proj[1]; // this should be >=, why is it not ?
     
     // view and projection
     gl_Position = u_projection * u_view * vec4(sol,1.0);
