@@ -128,7 +128,7 @@ class Canvas(app.Canvas):
 
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
-        projection = perspective(self.fovy, width / float(height), self.z_near, self.z_far)
+        projection = perspective(self.fovy, width / float(height), self.z_near, self.z_far) # this is flipping z-axis ?
 
         self.floor_program["u_view"] = self.view
         self.floor_program["u_model"] = self.floor_model

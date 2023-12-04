@@ -125,6 +125,18 @@ np.dot(sol1-fish,vertex-fish)
 
 # factorized
 
+import numpy as np
+
+x_v = -2
+y_v = 0
+z_v = -2
+
+x_f = 0
+y_f = 0
+z_f = -5
+
+r = 100
+
 # helpful variables;
 x_ = x_f-x_v
 y_ = y_f-y_v
@@ -144,3 +156,8 @@ z1 = 1/d * (x_*xz_ + z_*s)
 
 sol0 = np.array([x0,y0,z0])
 sol1 = np.array([x1,y1,z1])
+fish = np.array([x_f,y_f,z_f])
+vertex = np.array([x_v,y_v,z_v])
+
+np.dot(sol0-fish,vertex-fish)
+np.dot(sol1-fish,vertex-fish)

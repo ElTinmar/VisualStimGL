@@ -27,7 +27,13 @@ attribute vec3 instance_shift;
 // varying
 varying vec4 v_color;
 
-vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) { 
+// TODO check what happens when fish_pos = vertex_pos
+vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) { 
+    // freely-swimming: fish is not at (0,0,0) but moves in world coordinates
+    // we compute the intersection of the line between fish coords and vertex coords 
+    // with a cylinder of radius <cylinder_radius>.
+    // With the hypothesis that the fish always stays inside the cylinder,
+    // there will always be at least 1 solution.
 
     // vertex coords
     float x_v = vertex_pos.x;
@@ -43,15 +49,15 @@ vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     float r = cylinder_radius;
 
     // helpful variables
-    float x_ = x_f-x_v;
-    float y_ = y_f-y_v;
-    float z_ = z_f-z_v;
+    float x_ = x_f - x_v;
+    float y_ = y_f - y_v;
+    float z_ = z_f - z_v;
     float xz_ = (x_f*z_v - x_v*z_f);
     float xy_ = (x_f*y_v - x_v*y_f);
     float d = x_*x_ + z_*z_;
     float s = sqrt(r*r*d - xz_*xz_);
 
-    // projection to cylinder
+    // projection to cylinder (two solutions)
     float x0 = 1/d * (x_v*(z_f*z_ + s) - x_f*(z_v*z_ + s));
     float x1 = 1/d * (x_v*(z_f*z_ - s) - x_f*(z_v*z_ - s));
     float y0 = 1/d * (x_*xy_ + y_v * (z_f*z_ + s) - y_f * (z_v*z_ + s));
@@ -59,25 +65,23 @@ vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     float z0 = 1/d * (x_*xz_ - z_*s);
     float z1 = 1/d * (x_*xz_ + z_*s);
 
-    vec3[2] sol;
-    sol[0] = vec3(x0, y0, z0);
-    sol[1] = vec3(x1, y1, z1);
+    // find correct solution: fish->vertex and fish->cylinder vectors should be in same dir
+    vec3 sol0 = vec3(x0, y0, z0);
+    vec3 sol1 = vec3(x1, y1, z1);
+    vec3 sol;
+    float dir = dot(sol0-fish_pos, vertex_pos-fish_pos);
+    dir < 0.0f ? sol = sol0 : sol = sol1; // this should be >=, why is it not ?
+
     return sol;
 } 
 
 void main()
 {
-    // project to cylinder
     vec4 vertex_coords = u_model * vec4(a_position+instance_shift,1.0);
-    vec3[2] proj = cylinder_proj(a_fish, vertex_coords.xyz, a_cylinder_radius);
+    vec3 proj = cylinder_proj(a_fish, vertex_coords.xyz, a_cylinder_radius);
 
-    // find correct solution: fish->vertex and fish->cylinder vectors should be in same dir
-    vec3 sol;
-    float dir = dot(proj[0]-a_fish, vertex_coords.xyz-a_fish);
-    dir > 0.0f ? sol = proj[0] : sol = proj[1]; // this should be >=, why is it not ?
-    
     // view and projection
-    gl_Position = u_projection * u_view * vec4(sol,1.0);
+    gl_Position = u_projection * u_view * vec4(proj,1.0);
     v_color = a_color;
 }
 """
@@ -144,7 +148,7 @@ class Canvas(app.Canvas):
 
         # floor
         self.floor_program = gloo.Program(VERT_SHADER_FLOOR, FRAG_SHADER_FLOOR)
-        self.floor_program["a_position"] = [(-100,-1,-100),(-100,-1,100),(100,-1,-100),(100,-1,100)]
+        self.floor_program["a_position"] = [(-100,0,-100),(-100,0,100),(100,0,-100),(100,0,100)]
 
         # cylinder
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
