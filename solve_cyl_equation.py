@@ -17,7 +17,7 @@ equations = [
 solutions = solve(equations, [x,y,z], dict=True)
 
 solutions[0]
-solutions[1][x]
+solutions[1]
 
 import numpy as np
 

@@ -43,14 +43,77 @@ vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     float r = cylinder_radius;
 
     // project vertex on cylinder
-    float denominator = (x_f*x_f - 2*x_f*x_v + x_v*x_v + z_f*z_f - 2*z_f*z_v + z_v*z_v);
-    float squareroot = sqrt(r*r*x_f*x_f - 2*r*r*x_f*x_v + r*r*x_v*x_v + r*r*z_f*z_f - 2*r*r*z_f*z_v + r*r*z_v*z_v - x_f*x_f*z_v*z_v + 2*x_f*x_v*z_f*z_v - x_v*x_v*z_f*z_f);
-    float x0 = 1/denominator * (-x_f*z_f*z_v + x_f*z_v*z_v - x_f*squareroot + x_v*z_f*z_f - x_v*z_f*z_v + x_v*squareroot);
-    float x1 = 1/denominator * (-x_f*z_f*z_v + x_f*z_v*z_v + x_f*squareroot + x_v*z_f*z_f - x_v*z_f*z_v - x_v*squareroot);
-    float y0 = 1/denominator * (x_f*x_f*y_v + x_f*x_v*y_f - x_f*x_v*y_v + x_v*x_v*y_f - y_f*z_f*z_v + y_f*z_v*z_v - y_f*squareroot + y_v*z_f*z_f - y_v*z_f*z_v + y_v*squareroot);
-    float y1 = 1/denominator * (x_f*x_f*y_v + x_f*x_v*y_f - x_f*x_v*y_v + x_v*x_v*y_f - y_f*z_f*z_v + y_f*z_v*z_v + y_f*squareroot + y_v*z_f*z_f - y_v*z_f*z_v - y_v*squareroot);
-    float z0 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) - (z_f - z_v) * squareroot);
-    float z1 = 1/denominator * ((x_f - x_v)*(x_f*z_v - x_v*z_f) + (z_f - z_v) * squareroot);
+    float denominator = (
+        x_f*x_f 
+        - 2*x_f*x_v 
+        + x_v*x_v 
+        + z_f*z_f 
+        - 2*z_f*z_v 
+        + z_v*z_v
+    );
+
+    float squareroot = sqrt(
+        r*r*x_f*x_f 
+        - 2*r*r*x_f*x_v 
+        + r*r*x_v*x_v 
+        + r*r*z_f*z_f 
+        - 2*r*r*z_f*z_v 
+        + r*r*z_v*z_v 
+        - x_f*x_f*z_v*z_v 
+        + 2*x_f*x_v*z_f*z_v 
+        - x_v*x_v*z_f*z_f
+    );
+
+    float x0 = 1/denominator * (
+        -x_f*z_f*z_v 
+        + x_f*z_v*z_v 
+        - x_f*squareroot 
+        + x_v*z_f*z_f 
+        - x_v*z_f*z_v 
+        + x_v*squareroot
+    );
+    float x1 = 1/denominator * (
+        -x_f*z_f*z_v 
+        + x_f*z_v*z_v 
+        + x_f*squareroot 
+        + x_v*z_f*z_f 
+        - x_v*z_f*z_v 
+        - x_v*squareroot
+    );
+
+    float y0 = 1/denominator * (
+        x_f*x_f*y_v 
+        + x_f*x_v*y_f 
+        - x_f*x_v*y_v 
+        + x_v*x_v*y_f 
+        - y_f*z_f*z_v 
+        + y_f*z_v*z_v 
+        - y_f*squareroot 
+        + y_v*z_f*z_f 
+        - y_v*z_f*z_v 
+        + y_v*squareroot
+    );
+    float y1 = 1/denominator * (
+        x_f*x_f*y_v 
+        + x_f*x_v*y_f 
+        - x_f*x_v*y_v 
+        + x_v*x_v*y_f 
+        - y_f*z_f*z_v 
+        + y_f*z_v*z_v 
+        + y_f*squareroot 
+        + y_v*z_f*z_f 
+        - y_v*z_f*z_v 
+        - y_v*squareroot
+    );
+
+    float z0 = 1/denominator * (
+        (x_f - x_v)*(x_f*z_v - x_v*z_f) 
+        - (z_f - z_v)*squareroot
+    );
+    float z1 = 1/denominator * (
+        (x_f - x_v)*(x_f*z_v - x_v*z_f) 
+        + (z_f - z_v)*squareroot
+    );
 
     vec3[2] sol;
     sol[0] = vec3(x0, y0, z0);
