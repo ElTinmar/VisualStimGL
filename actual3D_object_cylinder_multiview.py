@@ -19,7 +19,6 @@ attribute vec3 a_position;
 attribute vec3 a_fish;
 attribute float a_cylinder_radius;
 attribute vec4 a_color;
-attribute vec3 a_normal;
 
 // per-instance attributes
 attribute vec3 instance_shift;
@@ -143,17 +142,14 @@ class Slave(app.Canvas):
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(90, (1,0,0)))
         positions = positions[:,:-1]
-        normals =  mesh_data.get_vertex_normals() # this should also be affected by the rotation, but I'm not using it anyways
         col = np.array([1.0, 0.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
         colors[positions[:,0]<0] = np.array([0.0, 0.0, 1.0, 1.0])
 
         vtype = [('a_position', np.float32, 3),
-             ('a_normal', np.float32, 3),
              ('a_color', np.float32, 4)]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
-        vertex['a_normal'] = normals
         vertex['a_color'] = colors
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
@@ -235,17 +231,14 @@ class Master(app.Canvas):
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(90, (1,0,0)))
         positions = positions[:,:-1]
-        normals =  mesh_data.get_vertex_normals() # this should also be affected by the rotation, but I'm not using it anyways
         col = np.array([1.0, 0.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
         colors[positions[:,0]<0] = np.array([0.0, 0.0, 1.0, 1.0])
 
         vtype = [('a_position', np.float32, 3),
-             ('a_normal', np.float32, 3),
              ('a_color', np.float32, 4)]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
-        vertex['a_normal'] = normals
         vertex['a_color'] = colors
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
