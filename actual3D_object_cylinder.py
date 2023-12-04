@@ -209,9 +209,6 @@ class Canvas(app.Canvas):
         # hide cursor
         self.native.setCursor(Qt.BlankCursor)
 
-        self.timer = app.Timer('auto', self.on_timer)
-        self.timer.start()
-
         self.show()
 
     def on_mouse_move(self,event):
@@ -288,15 +285,11 @@ class Canvas(app.Canvas):
         gloo.clear(color=True, depth=True)
         self.floor_program.draw('triangle_strip')
         self.cylinder_program.draw('triangles', self.indices)
-
-    def on_timer(self, event):
-        # change the model or view here to create custom animations
-        # self.cylinder_model = self.cylinder_model.dot(rotate(1,(1,0,0)))
-        # self.cylinder_program["u_model"] = self.cylinder_model
         self.update()
 
 if __name__ == '__main__':
     canvas = Canvas()
+
     if sys.flags.interactive != 1:
         app.run()
     
