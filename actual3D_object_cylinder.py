@@ -70,7 +70,7 @@ vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     vec3 sol1 = vec3(x1, y1, z1);
     vec3 sol;
     float dir = dot(sol0-fish_pos, vertex_pos-fish_pos);
-    dir > 0.0f ? sol = sol0 : sol = sol1; // this should be >=, why is it not ?
+    dir > 0.0f ? sol = sol0 : sol = sol1; 
 
     return sol;
 } 
@@ -228,7 +228,7 @@ class Canvas(app.Canvas):
 
         self.native.cursor().setPos(self.native.mapToGlobal(QPoint(w//2,h//2))) 
 
-        print(f'Yaw: {self.cam_yaw}, Pitch: {self.cam_pitch}, Roll: {self.cam_roll}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
+        #print(f'Yaw: {self.cam_yaw}, Pitch: {self.cam_pitch}, Roll: {self.cam_roll}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
 
     def on_key_press(self, event):
 
@@ -269,7 +269,7 @@ class Canvas(app.Canvas):
             self.cylinder_program['u_view'] = self.view
             self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
             self.floor_program['u_view'] = self.view
-            print(f'Yaw: {self.cam_yaw}, Pitch: {self.cam_pitch}, Roll: {self.cam_roll}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
+            #print(f'Yaw: {self.cam_yaw}, Pitch: {self.cam_pitch}, Roll: {self.cam_roll}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
 
     def on_resize(self, event):
         width, height = event.size
