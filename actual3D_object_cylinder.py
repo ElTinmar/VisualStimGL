@@ -26,6 +26,7 @@ attribute vec3 instance_shift;
 
 // varying
 varying vec4 v_color;
+varying float v_depth;
 
 // TODO check what happens when fish_pos = vertex_pos
 vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) { 
@@ -83,6 +84,10 @@ void main()
     // view and projection
     gl_Position = u_projection * u_view * vec4(proj,1.0);
     v_color = a_color;
+
+    // send depth info
+    vec4 position = u_projection * u_view * vertex_coords;
+    v_depth = position.z/position.w;
 }
 """
 
@@ -103,9 +108,11 @@ void main()
 # in vec2 gl_PointCoord;
 FRAG_SHADER_CYLINDER = """
 varying vec4 v_color;
+varying float v_depth;
 void main()
 {
     gl_FragColor = v_color;
+    gl_FragDepth = v_depth;
 }
 """
 
