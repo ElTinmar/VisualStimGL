@@ -74,7 +74,7 @@ void main()
     // find correct solution: fish->vertex and fish->cylinder vectors should be in same dir
     vec3 sol;
     float dir = dot(proj[0]-a_fish, vertex_coords.xyz-a_fish);
-    dir < 0.0f ? sol = proj[0] : sol = proj[1]; // this should be >=, why is it not ?
+    dir > 0.0f ? sol = proj[0] : sol = proj[1]; // this should be >=, why is it not ?
     
     // view and projection
     gl_Position = u_projection * u_view * vec4(sol,1.0);
