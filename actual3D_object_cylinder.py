@@ -27,7 +27,7 @@ attribute vec3 instance_shift;
 // varying
 varying vec4 v_color;
 
-vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
+vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) { 
 
     // vertex coords
     float x_v = vertex_pos.x;
@@ -40,7 +40,7 @@ vec3[2] cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     float z_f = fish_pos.z;
 
     // cylinder radius
-    float r = a_cylinder_radius;
+    float r = cylinder_radius;
 
     // project vertex on cylinder
     float denominator = (x_f*x_f - 2*x_f*x_v + x_v*x_v + z_f*z_f - 2*z_f*z_v + z_v*z_v);
@@ -64,7 +64,7 @@ void main()
     vec4 vertex_coords = u_model * vec4(a_position+instance_shift,1.0);
     vec3[2] proj = cylinder_proj(a_fish, vertex_coords.xyz, a_cylinder_radius);
 
-    // find correct solution
+    // find correct solution: fish->vertex and fish->cylinder vectors should be in same dir
     vec3 sol;
     float dir = dot(proj[0]-a_fish, vertex_coords.xyz-a_fish);
     dir < 0.0f ? sol = proj[0] : sol = proj[1]; // this should be >=, why is it not ?
