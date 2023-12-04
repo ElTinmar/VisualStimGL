@@ -159,6 +159,8 @@ class Canvas(app.Canvas):
         normals =  mesh_data.get_vertex_normals() # this should also be affected by the rotation, but I'm not using it anyways
         col = np.array([1.0, 0.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
+        colors[positions[:,0]<0] = np.array([0.0, 0.0, 1.0, 1.0])
+        
         vtype = [('a_position', np.float32, 3),
              ('a_normal', np.float32, 3),
              ('a_color', np.float32, 4)]
