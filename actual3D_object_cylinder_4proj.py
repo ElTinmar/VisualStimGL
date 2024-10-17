@@ -127,7 +127,15 @@ class Slave(app.Canvas):
     Side view, what needs to be projected (need to calibrate)
     '''
 
-    def __init__(self):
+    def __init__(
+            self,
+            tx: float = 0,
+            ty: float = -0.1,
+            tz: float = -20,
+            yaw: float = 0,
+            pitch: float = 0,
+            roll: float = 0,
+        ):
         app.Canvas.__init__(self, size=(1280,720), fullscreen=False, keys='interactive')
 
         mesh_data = create_cylinder(rows=10, cols = 36)
@@ -166,11 +174,13 @@ class Slave(app.Canvas):
         gloo.set_viewport(0, 0, width, height)
         projection = perspective(60, width / float(height), 1, 1000)
 
-        self.floor_program["u_view"] = translate((0,-0.1,-20))
+        u_view = translate((tx,ty,tz)).dot(rotate(yaw, (0,1,0))).dot(rotate(roll, (0,0,1))).dot(rotate(pitch, (1,0,0)))
+
+        self.floor_program["u_view"] = u_view
         self.floor_program["u_model"] = translate((0,0,0))
         self.floor_program['u_projection'] = projection
 
-        self.cylinder_program["u_view"] = translate((0,-0.1,-20))
+        self.cylinder_program["u_view"] = u_view
         self.cylinder_program["u_model"] = translate((0,0,0))
         self.cylinder_program['u_projection'] = projection
         
@@ -360,7 +370,41 @@ class Master(app.Canvas):
             slave.close()
 
 if __name__ == '__main__':
-    master = Master([Slave(), Slave(), Slave(), Slave()])
+
+    proj0 = Slave(
+        tx = 0,
+        ty = -0.1,
+        tz = -20,
+        yaw = 0,
+        pitch = 0,
+        roll = 0
+    )
+    proj1 = Slave(
+        tx = 20,
+        ty = -0.1,
+        tz = 0,
+        yaw = 90,
+        pitch = 0,
+        roll = 0
+    )
+    proj2 = Slave(
+        tx = 0,
+        ty = -0.1,
+        tz = 20,
+        yaw = 180,
+        pitch = 0,
+        roll = 0
+    )
+    proj3 = Slave(
+        tx = -20,
+        ty = -0.1,
+        tz = 0,
+        yaw = 270,
+        pitch = 0,
+        roll = 0
+    )
+
+    master = Master([proj0, proj1, proj2, proj3])
 
     if sys.flags.interactive != 1:
         app.run()
