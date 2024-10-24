@@ -385,7 +385,7 @@ if __name__ == '__main__':
 
     proj0 = Slave(
         window_size = (800,600),
-        window_position = (0,1080),
+        window_position = (1080,0),
         fullscreen = False,
         tx = 0,
         ty = -0.1,
@@ -396,7 +396,7 @@ if __name__ == '__main__':
     )
     proj1 = Slave(
         window_size = (800,600),
-        window_position = (0,1680),
+        window_position = (1680,0),
         fullscreen = False,
         tx = 20,
         ty = -0.1,
@@ -407,7 +407,7 @@ if __name__ == '__main__':
     )
     proj2 = Slave(
         window_size = (800,600),
-        window_position = (0,2280),
+        window_position = (2280,0),
         fullscreen = False,
         tx = 0,
         ty = -0.1,
@@ -418,7 +418,7 @@ if __name__ == '__main__':
     )
     proj3 = Slave(
         window_size = (1280,800),
-        window_position = (0,2880),
+        window_position = (2880,0),
         fullscreen = False,
         tx = -20,
         ty = -0.1,
