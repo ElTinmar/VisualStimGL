@@ -4,6 +4,7 @@ from vispy.geometry import create_cylinder
 from vispy.util.transforms import perspective, translate, rotate
 import numpy as np
 from PyQt5.QtCore import QPoint, Qt 
+from typing import Tuple
 
 # we need full gl context for instanced rendering (this requires PyOpenGL: pip install PyOpenGL PyOpenGL_accelerate)
 use(gl='gl+')
@@ -129,6 +130,9 @@ class Slave(app.Canvas):
 
     def __init__(
             self,
+            window_size: Tuple[int, int] = (1920, 1080), 
+            window_position: Tuple[int, int] = (0,0), 
+            fullscreen: bool = True,
             tx: float = 0,
             ty: float = -0.1,
             tz: float = -20,
@@ -136,7 +140,15 @@ class Slave(app.Canvas):
             pitch: float = 0,
             roll: float = 0,
         ):
-        app.Canvas.__init__(self, size=(1280,720), fullscreen=False, keys='interactive')
+
+        app.Canvas.__init__(
+            self, 
+            size=window_size, 
+            position=window_position, 
+            fullscreen=fullscreen, 
+            decorate=False,
+            keys='interactive'
+        )
 
         mesh_data = create_cylinder(rows=10, cols = 36)
         
@@ -201,7 +213,7 @@ class Slave(app.Canvas):
 
 class Master(app.Canvas):
     def __init__(self, slaves):
-        app.Canvas.__init__(self, size=(1280,720), fullscreen=False, keys='interactive')
+        app.Canvas.__init__(self, size=(800,600), position=(0,0), fullscreen=False, keys='interactive')
 
         self.slaves = slaves
 
@@ -372,6 +384,9 @@ class Master(app.Canvas):
 if __name__ == '__main__':
 
     proj0 = Slave(
+        window_size = (800,600),
+        window_position = (0,1080),
+        fullscreen = False,
         tx = 0,
         ty = -0.1,
         tz = -20,
@@ -380,6 +395,9 @@ if __name__ == '__main__':
         roll = 0
     )
     proj1 = Slave(
+        window_size = (800,600),
+        window_position = (0,1680),
+        fullscreen = False,
         tx = 20,
         ty = -0.1,
         tz = 0,
@@ -388,6 +406,9 @@ if __name__ == '__main__':
         roll = 0
     )
     proj2 = Slave(
+        window_size = (800,600),
+        window_position = (0,2280),
+        fullscreen = False,
         tx = 0,
         ty = -0.1,
         tz = 20,
@@ -396,6 +417,9 @@ if __name__ == '__main__':
         roll = 0
     )
     proj3 = Slave(
+        window_size = (1280,800),
+        window_position = (0,2880),
+        fullscreen = False,
         tx = -20,
         ty = -0.1,
         tz = 0,
