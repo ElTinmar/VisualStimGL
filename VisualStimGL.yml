@@ -8,7 +8,6 @@ dependencies:
   - numpy
   - vispy
   - pip
-  - glib == 2.82.1 
   - pip:
     - pytest
     - matplotlib
