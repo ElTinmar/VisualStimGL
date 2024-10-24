@@ -71,8 +71,12 @@ vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     vec3 sol1 = vec3(x1, y1, z1);
     vec3 sol;
     float dir = dot(sol0-fish_pos, vertex_pos-fish_pos);
-    dir > 0.0f ? sol = sol0 : sol = sol1; 
-
+    if (dir > 0.0f) {
+        sol = sol0;
+    }
+    else {
+        sol = sol1;
+    }
     return sol;
 } 
 
