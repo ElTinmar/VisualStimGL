@@ -114,12 +114,20 @@ void main()
 # in bool gl_FrontFacing;
 # in vec2 gl_PointCoord;
 FRAG_SHADER_CYLINDER = """
+uniform vec2 u_resolution;
+uniform float u_blend_width;
+
 varying vec4 v_color;
 varying float v_depth;
 
+vec4 edge_blending(vec2 pos, vec4 col, float width) 
+{
+    return col * smoothstep(0.0, width, pos.x) * smoothstep(0.0, width, 1.0 - pos.x);
+}
+
 void main()
 {
-    gl_FragColor = v_color;
+    gl_FragColor = edge_blending(gl_FragCoord.xy/u_resolution, v_color, u_blend_width);
     gl_FragDepth = v_depth; // this disables early depth testing and comes at a perf cost
 }
 """
@@ -143,7 +151,8 @@ class Slave(app.Canvas):
             radius_mm: float = 100,
             height_mm: float = 50,
             fovy: float = 60,
-            shifty: float = 0.5
+            shifty: float = 0.5,
+            blend_width: float = 0.2
         ):
 
         app.Canvas.__init__(
@@ -185,9 +194,11 @@ class Slave(app.Canvas):
         self.cylinder_program.bind(vbo)
         self.cylinder_program['a_fish'] = [0,0,5]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
+        self.cylinder_program['u_blend_width'] = blend_width
 
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
+        self.cylinder_program['u_resolution'] = [width, height]
 
         projection = perspective(fovy, width / float(height), 1, 10_000)
         projection[2,1] += projection[1,1]*shifty # oblique frustum to account for proj lens shift
@@ -282,6 +293,7 @@ class Master(app.Canvas):
         self.cylinder_program.bind(vbo)
         self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
+        self.cylinder_program['u_blend_width'] = 0.2
 
         # model, view, projection 
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
@@ -289,6 +301,8 @@ class Master(app.Canvas):
 
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
+        self.cylinder_program['u_resolution'] = [width, height]
+
         projection = perspective(self.fovy, width / float(height), self.z_near, self.z_far)
 
         self.cylinder_program["u_view"] = self.view
@@ -387,8 +401,9 @@ if __name__ == '__main__':
 
     radius_mm = 200/np.pi
     height_mm = 50
-    fovy = 55
-    shifty = 0.5
+    fovy = 30
+    shifty = 0.2
+    blend_width = 0.4
 
     proj0 = Slave(
         window_size = (800,600),
@@ -403,7 +418,8 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        shifty = shifty
+        shifty = shifty,
+        blend_width = blend_width
     )
     proj1 = Slave(
         window_size = (800,600),
@@ -418,7 +434,8 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        shifty = shifty
+        shifty = shifty,
+        blend_width = blend_width
     )
     proj2 = Slave(
         window_size = (800,600),
@@ -433,7 +450,8 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        shifty = shifty
+        shifty = shifty,
+        blend_width = blend_width
     )
     proj3 = Slave(
         window_size = (1280,800),
@@ -448,7 +466,8 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        shifty = shifty
+        shifty = shifty,
+        blend_width = blend_width
     )
 
     master = Master(
