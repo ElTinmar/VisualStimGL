@@ -1,7 +1,7 @@
 import sys
 from vispy import gloo, app,  use 
 from vispy.geometry import create_cylinder
-from vispy.util.transforms import perspective, translate, rotate
+from vispy.util.transforms import perspective, translate, rotate, frustum
 import numpy as np
 from PyQt5.QtCore import QPoint, Qt 
 from typing import Tuple
@@ -10,6 +10,16 @@ from typing import Tuple
 # if fish moves inside, nothing changes because object is on the walls.
 # if fish outside, it breaks, because fish can't be outside.
 # Remove fish and navigation alltogether for calibration ?    
+
+# TODO can I match perspective frustum with projector offset ? 
+
+# TODO identify calibration parameters
+#   - radius
+#   - position of each proj
+#   - angles of each proj
+#   - fovy  
+
+# TODO let the master control calibration parameters ?
 
 use(gl='gl+')
 
@@ -131,7 +141,8 @@ class Slave(app.Canvas):
             pitch: float = 0,
             roll: float = 0,
             radius_mm: float = 100,
-            height_mm: float = 50
+            height_mm: float = 50,
+            fovy: float = 60
         ):
 
         app.Canvas.__init__(
@@ -149,12 +160,13 @@ class Slave(app.Canvas):
             radius= (radius_mm,radius_mm),
             length = height_mm 
         )
+        print(mesh_data.get_bounds())
 
         # cylinder
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         positions = mesh_data.get_vertices()
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
-        positions = positions.dot(rotate(90, (1,0,0)))
+        positions = positions.dot(rotate(-90, (1,0,0)))
         positions = positions[:,:-1]
         col = np.array([1.0, 0.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
@@ -174,7 +186,8 @@ class Slave(app.Canvas):
 
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
-        projection = perspective(60, width / float(height), 1, 10_000)
+        #projection = perspective(fovy, width / float(height), 1, 10_000).dot(rotate(fovy/2, (1,0,0))) # rotating to model projector offset
+        projection = perspective(fovy, width / float(height), 1, 10_000)
 
         u_view = translate((tx,ty,tz)).dot(rotate(yaw, (0,1,0))).dot(rotate(roll, (0,0,1))).dot(rotate(pitch, (1,0,0)))
 
@@ -189,7 +202,7 @@ class Slave(app.Canvas):
 
     def on_draw(self, event):
         gloo.clear(color=True, depth=True)
-        self.cylinder_program.draw('lines', self.indices)
+        self.cylinder_program.draw('line_strip', self.indices)
 
     def set_state(self, x, y, z):
         self.cylinder_program['a_fish'] = [x, y, z]
@@ -229,7 +242,7 @@ class Master(app.Canvas):
 
         # camera location and rotation
         self.cam_x = 0
-        self.cam_y = 1
+        self.cam_y = 0
         self.cam_z = 0
         self.cam_yaw = 0.0
         self.cam_pitch = 0.0
@@ -249,7 +262,7 @@ class Master(app.Canvas):
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         positions = mesh_data.get_vertices()
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
-        positions = positions.dot(rotate(90, (1,0,0)))
+        positions = positions.dot(rotate(-90, (1,0,0)))
         positions = positions[:,:-1]
         col = np.array([1.0, 0.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
@@ -360,7 +373,7 @@ class Master(app.Canvas):
 
     def on_draw(self, event):
         gloo.clear(color=True, depth=True)
-        self.cylinder_program.draw('lines', self.indices)
+        self.cylinder_program.draw('line_strip', self.indices)
         self.update()
 
     def on_close(self, event):
@@ -371,58 +384,63 @@ if __name__ == '__main__':
 
     radius_mm = 200/np.pi
     height_mm = 50
+    fovy = 45
 
     proj0 = Slave(
         window_size = (800,600),
         window_position = (1920,0),
         fullscreen = False,
         tx = 0,
-        ty = -1,
+        ty = 0,
         tz = -200,
         yaw = 0,
         pitch = 0,
         roll = 0,
         radius_mm = radius_mm,
-        height_mm = height_mm
+        height_mm = height_mm,
+        fovy = fovy
     )
     proj1 = Slave(
         window_size = (800,600),
         window_position = (2720,0),
         fullscreen = False,
         tx = 200,
-        ty = -1,
+        ty = 0,
         tz = 0,
         yaw = 90,
         pitch = 0,
         roll = 0,
         radius_mm = radius_mm,
-        height_mm = height_mm
+        height_mm = height_mm,
+        fovy = fovy
     )
     proj2 = Slave(
         window_size = (800,600),
         window_position = (3520,0),
         fullscreen = False,
         tx = 0,
-        ty = -1,
+        ty = 0,
         tz = 200,
         yaw = 180,
         pitch = 0,
         roll = 0,
         radius_mm = radius_mm,
-        height_mm = height_mm
+        height_mm = height_mm,
+        fovy = fovy
     )
     proj3 = Slave(
         window_size = (1280,800),
         window_position = (4320,0),
         fullscreen = False,
         tx = -200,
-        ty = -1,
+        ty = 0,
         tz = 0,
         yaw = 270,
         pitch = 0,
         roll = 0,
         radius_mm = radius_mm,
-        height_mm = height_mm
+        height_mm = height_mm,
+        fovy = fovy
     )
 
     master = Master(
