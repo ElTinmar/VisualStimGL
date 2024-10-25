@@ -135,14 +135,15 @@ class Slave(app.Canvas):
             window_position: Tuple[int, int] = (0,0), 
             fullscreen: bool = True,
             tx: float = 0,
-            ty: float = -1,
-            tz: float = -200,
+            ty: float = 0,
+            tz: float = 0,
             yaw: float = 0,
             pitch: float = 0,
             roll: float = 0,
             radius_mm: float = 100,
             height_mm: float = 50,
-            fovy: float = 60
+            fovy: float = 60,
+            shifty: float = 0.5
         ):
 
         app.Canvas.__init__(
@@ -160,7 +161,6 @@ class Slave(app.Canvas):
             radius= (radius_mm,radius_mm),
             length = height_mm 
         )
-        print(mesh_data.get_bounds())
 
         # cylinder
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
@@ -171,12 +171,14 @@ class Slave(app.Canvas):
         col = np.array([1.0, 0.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
         colors[positions[:,0]<0] = np.array([0.0, 0.0, 1.0, 1.0])
-
-        vtype = [('a_position', np.float32, 3),
-             ('a_color', np.float32, 4)]
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('a_color', np.float32, 4)
+        ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
         vertex['a_color'] = colors
+        
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
@@ -186,8 +188,9 @@ class Slave(app.Canvas):
 
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
-        #projection = perspective(fovy, width / float(height), 1, 10_000).dot(rotate(fovy/2, (1,0,0))) # rotating to model projector offset
+
         projection = perspective(fovy, width / float(height), 1, 10_000)
+        projection[2,1] += projection[1,1]*shifty # oblique frustum to account for proj lens shift
 
         u_view = translate((tx,ty,tz)).dot(rotate(yaw, (0,1,0))).dot(rotate(roll, (0,0,1))).dot(rotate(pitch, (1,0,0)))
 
@@ -384,7 +387,8 @@ if __name__ == '__main__':
 
     radius_mm = 200/np.pi
     height_mm = 50
-    fovy = 45
+    fovy = 55
+    shifty = 0.5
 
     proj0 = Slave(
         window_size = (800,600),
@@ -398,7 +402,8 @@ if __name__ == '__main__':
         roll = 0,
         radius_mm = radius_mm,
         height_mm = height_mm,
-        fovy = fovy
+        fovy = fovy,
+        shifty = shifty
     )
     proj1 = Slave(
         window_size = (800,600),
@@ -412,7 +417,8 @@ if __name__ == '__main__':
         roll = 0,
         radius_mm = radius_mm,
         height_mm = height_mm,
-        fovy = fovy
+        fovy = fovy,
+        shifty = shifty
     )
     proj2 = Slave(
         window_size = (800,600),
@@ -426,7 +432,8 @@ if __name__ == '__main__':
         roll = 0,
         radius_mm = radius_mm,
         height_mm = height_mm,
-        fovy = fovy
+        fovy = fovy,
+        shifty = shifty
     )
     proj3 = Slave(
         window_size = (1280,800),
@@ -440,7 +447,8 @@ if __name__ == '__main__':
         roll = 0,
         radius_mm = radius_mm,
         height_mm = height_mm,
-        fovy = fovy
+        fovy = fovy,
+        shifty = shifty
     )
 
     master = Master(
