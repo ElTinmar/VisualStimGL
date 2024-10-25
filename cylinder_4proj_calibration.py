@@ -404,6 +404,7 @@ if __name__ == '__main__':
     fovy = 30
     shifty = 0.2
     blend_width = 0.4
+    proj_distance_mm = 200
 
     proj0 = Slave(
         window_size = (800,600),
@@ -411,7 +412,7 @@ if __name__ == '__main__':
         fullscreen = False,
         tx = 0,
         ty = 0,
-        tz = -200,
+        tz = -proj_distance_mm,
         yaw = 0,
         pitch = 0,
         roll = 0,
@@ -425,7 +426,7 @@ if __name__ == '__main__':
         window_size = (800,600),
         window_position = (2720,0),
         fullscreen = False,
-        tx = 200,
+        tx = proj_distance_mm,
         ty = 0,
         tz = 0,
         yaw = 90,
@@ -443,7 +444,7 @@ if __name__ == '__main__':
         fullscreen = False,
         tx = 0,
         ty = 0,
-        tz = 200,
+        tz = proj_distance_mm,
         yaw = 180,
         pitch = 0,
         roll = 0,
@@ -457,7 +458,7 @@ if __name__ == '__main__':
         window_size = (1280,800),
         window_position = (4320,0),
         fullscreen = False,
-        tx = -200,
+        tx = -proj_distance_mm,
         ty = 0,
         tz = 0,
         yaw = 270,
