@@ -185,7 +185,7 @@ class Slave(app.Canvas):
         positions = positions[:,:-1]
         col = np.array([1.0, 0.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
-        colors[positions[:,0]<0] = np.array([0.0, 0.0, 1.0, 1.0])
+        colors[positions[:,0]<0] = np.array([0.0, 1.0, 0.0, 1.0])
         vtype = [
             ('a_position', np.float32, 3),
             ('a_color', np.float32, 4)
@@ -286,7 +286,7 @@ class Master(app.Canvas):
         positions = positions[:,:-1]
         col = np.array([1.0, 0.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
-        colors[positions[:,0]<0] = np.array([0.0, 0.0, 1.0, 1.0])
+        colors[positions[:,0]<0] = np.array([0.0, 1.0, 0.0, 1.0])
 
         vtype = [('a_position', np.float32, 3),
              ('a_color', np.float32, 4)]
@@ -409,7 +409,7 @@ if __name__ == '__main__':
     height_mm = 50
     fovy = 24
     shifty = 0.1
-    blend_width = 0.4
+    blend_width = 0.6
     proj_distance_mm = 200
 
     proj0 = Slave(
