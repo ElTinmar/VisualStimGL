@@ -127,8 +127,14 @@ vec4 edge_blending(vec2 pos, vec4 col, float width)
 
 void main()
 {
-    gl_FragColor = edge_blending(gl_FragCoord.xy/u_resolution, v_color, u_blend_width);
+    if (v_depth < 0.9901) {
+        gl_FragColor = edge_blending(gl_FragCoord.xy/u_resolution, v_color, u_blend_width);
+    }
+    else {
+        gl_FragColor = vec4(0,0,0,0);
+    }
     gl_FragDepth = v_depth; // this disables early depth testing and comes at a perf cost
+    
 }
 """
 
