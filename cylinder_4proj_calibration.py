@@ -399,10 +399,10 @@ class Master(app.Canvas):
 
 if __name__ == '__main__':
 
-    radius_mm = 200/np.pi
+    radius_mm = 33
     height_mm = 50
-    fovy = 30
-    shifty = 0.2
+    fovy = 24
+    shifty = 0.1
     blend_width = 0.4
     proj_distance_mm = 200
 
@@ -412,8 +412,8 @@ if __name__ == '__main__':
         fullscreen = False,
         tx = 0,
         ty = 0,
-        tz = -proj_distance_mm,
-        yaw = 0,
+        tz = proj_distance_mm,
+        yaw = 180,
         pitch = 0,
         roll = 0,
         radius_mm = radius_mm,
@@ -444,8 +444,8 @@ if __name__ == '__main__':
         fullscreen = False,
         tx = 0,
         ty = 0,
-        tz = proj_distance_mm,
-        yaw = 180,
+        tz = -proj_distance_mm,
+        yaw = 0,
         pitch = 0,
         roll = 0,
         radius_mm = radius_mm,
