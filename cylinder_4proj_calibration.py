@@ -234,7 +234,8 @@ class Master(app.Canvas):
             self, 
             slaves,
             radius_mm: float = 100,
-            height_mm: float = 50
+            height_mm: float = 50, 
+            blend_width: float = 0.2
         ):
 
         app.Canvas.__init__(
@@ -299,7 +300,7 @@ class Master(app.Canvas):
         self.cylinder_program.bind(vbo)
         self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
-        self.cylinder_program['u_blend_width'] = 0.2
+        self.cylinder_program['u_blend_width'] = blend_width
 
         # model, view, projection 
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
@@ -406,10 +407,10 @@ class Master(app.Canvas):
 if __name__ == '__main__':
 
     radius_mm = 33
-    height_mm = 50
-    fovy = 24
+    height_mm = 30
+    fovy = 25
     shifty = 0.1
-    blend_width = 0.6
+    blend_width = 0.4
     proj_distance_mm = 200
 
     proj0 = Slave(
@@ -480,7 +481,8 @@ if __name__ == '__main__':
     master = Master(
         slaves = [proj0, proj1, proj2, proj3],
         radius_mm = radius_mm,
-        height_mm = height_mm
+        height_mm = height_mm,
+        blend_width = blend_width
     )
 
     if sys.flags.interactive != 1:
