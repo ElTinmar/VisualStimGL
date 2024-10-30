@@ -290,7 +290,19 @@ class Master(app.Canvas):
         colors[positions[:,0]<0] = np.array([0.0, 1.0, 0.0, 1.0])
 
         # TODO color red every 90 degrees
-        # idx = (np.pi-0.5 < np.arctan2(positions[:,0], positions[:,2])) & (np.arctan2(positions[:,0], positions[:,2]) < np.pi+0.5)
+        # idx = (
+        #     (np.pi-0.5 < np.arctan2(positions[:,0], positions[:,2])) 
+        #     & (np.arctan2(positions[:,0], positions[:,2]) < np.pi+0.5)
+        # ) | (
+        #     (np.pi/2-0.5 < np.arctan2(positions[:,0], positions[:,2])) 
+        #     & (np.arctan2(positions[:,0], positions[:,2]) < np.pi/2+0.5)
+        # ) | (
+        #     (3*np.pi/2-0.5 < np.arctan2(positions[:,0], positions[:,2])) 
+        #     & (np.arctan2(positions[:,0], positions[:,2]) < 3*np.pi/2+0.5)
+        # ) | (
+        #     (-0.5 < np.arctan2(positions[:,0], positions[:,2])) 
+        #     & (np.arctan2(positions[:,0], positions[:,2]) < 0.5)
+        # )
         # colors[idx] = np.array([1.0, 0.0, 0.0, 1.0])
 
         vtype = [('a_position', np.float32, 3),
