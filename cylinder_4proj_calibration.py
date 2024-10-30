@@ -289,6 +289,8 @@ class Master(app.Canvas):
         colors =  np.tile(col, (mesh_data.n_vertices,1))
         colors[positions[:,0]<0] = np.array([0.0, 1.0, 0.0, 1.0])
 
+        # TODO color red every 90 degrees
+
         vtype = [('a_position', np.float32, 3),
              ('a_color', np.float32, 4)]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
