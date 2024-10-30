@@ -183,7 +183,7 @@ class Slave(app.Canvas):
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(-90, (1,0,0)))
         positions = positions[:,:-1]
-        col = np.array([1.0, 0.0, 0.0, 1.0])
+        col = np.array([1.0, 1.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
         colors[positions[:,0]<0] = np.array([0.0, 1.0, 0.0, 1.0])
         vtype = [
@@ -285,7 +285,7 @@ class Master(app.Canvas):
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(-90, (1,0,0)))
         positions = positions[:,:-1]
-        col = np.array([1.0, 0.0, 0.0, 1.0])
+        col = np.array([1.0, 1.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
         colors[positions[:,0]<0] = np.array([0.0, 1.0, 0.0, 1.0])
 
