@@ -144,9 +144,14 @@ uniform float u_blend_width;
 varying vec4 v_color;
 varying float v_depth;
 
+vec4 edge_blending(vec2 pos, vec4 col, float width) 
+{
+    return col * smoothstep(0.0, width, pos.x) * smoothstep(0.0, width, 1.0 - pos.x);
+}
+
 void main()
 {
-    gl_FragColor = texture2D(texture, v_texcoord);
+    gl_FragColor =  texture2D(texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, v_color, u_blend_width);
 }
 """
 
