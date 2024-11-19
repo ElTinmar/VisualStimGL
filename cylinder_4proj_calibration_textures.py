@@ -21,6 +21,13 @@ from typing import Tuple
 
 # TODO let the master control calibration parameters ?
 
+def cylinder_texcoords(rows, cols, radius=[1.0, 1.0], length=1.0, offset=False):
+    texcoords = np.empty((rows+1, cols, 2), dtype=np.float32)
+    texcoords[..., 0] = np.linspace(0, 1, num=rows+1, endpoint=True).reshape(rows+1,1)
+    texcoords[..., 1] = np.linspace(0, 1, num=cols, endpoint=True).reshape(cols,)
+    texcoords = texcoords.reshape((rows+1)*cols, 2)
+    return texcoords
+
 def checkerboard(grid_num=8, grid_size=32):
     row_even = grid_num // 2 * [0, 1]
     row_odd = grid_num // 2 * [1, 0]
@@ -31,6 +38,8 @@ use(gl='gl+')
 
 VERT_SHADER_CYLINDER ="""
 // uniforms
+uniform sampler2D texture;
+
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
@@ -132,21 +141,9 @@ uniform float u_blend_width;
 varying vec4 v_color;
 varying float v_depth;
 
-vec4 edge_blending(vec2 pos, vec4 col, float width) 
-{
-    return col * smoothstep(0.0, width, pos.x) * smoothstep(0.0, width, 1.0 - pos.x);
-}
-
 void main()
 {
-    if (v_depth < 0.9901) {
-        gl_FragColor = edge_blending(gl_FragCoord.xy/u_resolution, v_color, u_blend_width);
-    }
-    else {
-        gl_FragColor = vec4(0,0,0,0);
-    }
-    gl_FragDepth = v_depth; // this disables early depth testing and comes at a perf cost
-    
+    gl_FragColor = texture2D(texture, v_texcoord);
 }
 """
 
@@ -188,6 +185,12 @@ class Slave(app.Canvas):
             radius= (radius_mm,radius_mm),
             length = height_mm 
         )
+        texcoord = cylinder_texcoords(
+            rows = int(height_mm//10), 
+            cols = int(2*np.pi*radius_mm//10), 
+            radius= (radius_mm,radius_mm),
+            length = height_mm 
+        )
 
         # cylinder
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
@@ -198,13 +201,14 @@ class Slave(app.Canvas):
         col = np.array([1.0, 1.0, 0.0, 1.0])
         colors =  np.tile(col, (mesh_data.n_vertices,1))
         colors[positions[:,0]<0] = np.array([0.0, 1.0, 0.0, 1.0])
-        vtype = [
-            ('a_position', np.float32, 3),
-            ('a_color', np.float32, 4)
-        ]
+
+        vtype = [('a_position', np.float32, 3),
+             ('a_color', np.float32, 4),
+             ('texcoord', np.float32, 2)]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
         vertex['a_color'] = colors
+        vertex['texcoord'] = texcoord
         
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
@@ -235,7 +239,7 @@ class Slave(app.Canvas):
 
     def on_draw(self, event):
         gloo.clear(color=True, depth=True)
-        self.cylinder_program.draw('line_strip', self.indices)
+        self.cylinder_program.draw('triangles', self.indices)
 
     def set_state(self, x, y, z):
         self.cylinder_program['a_fish'] = [x, y, z]
@@ -267,6 +271,12 @@ class Master(app.Canvas):
             cols = int(2*np.pi*radius_mm//10), 
             radius = (radius_mm,radius_mm), 
             length = height_mm
+        )
+        texcoord = cylinder_texcoords(
+            rows = int(height_mm//10), 
+            cols = int(2*np.pi*radius_mm//10), 
+            radius= (radius_mm,radius_mm),
+            length = height_mm 
         )
 
         # rotation and translation gain
@@ -319,10 +329,12 @@ class Master(app.Canvas):
         # colors[idx] = np.array([1.0, 0.0, 0.0, 1.0])
 
         vtype = [('a_position', np.float32, 3),
-             ('a_color', np.float32, 4)]
+             ('a_color', np.float32, 4),
+             ('texcoord', np.float32, 2)]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
         vertex['a_color'] = colors
+        vertex['texcoord'] = texcoord
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
@@ -427,7 +439,7 @@ class Master(app.Canvas):
 
     def on_draw(self, event):
         gloo.clear(color=True, depth=True)
-        self.cylinder_program.draw('line_strip', self.indices)
+        self.cylinder_program.draw('triangles', self.indices)
         self.update()
 
     def on_close(self, event):
