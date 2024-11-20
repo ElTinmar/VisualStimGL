@@ -28,11 +28,11 @@ def cylinder_texcoords(rows, cols, radius=[1.0, 1.0], length=1.0, offset=False):
     texcoords = texcoords.reshape((rows+1)*cols, 2)
     return texcoords
 
-def checkerboard(grid_num=8, grid_size=32):
-    row_even = grid_num // 2 * [0, 1]
-    row_odd = grid_num // 2 * [1, 0]
-    Z = np.row_stack(grid_num // 2 * (row_even, row_odd)).astype(np.uint8)
-    return 255 * Z.repeat(grid_size, axis=0).repeat(grid_size, axis=1)
+def checkerboard(height=256, width=256, grid_num=8):
+    grid_size = height // grid_num
+    xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
+    checkerboard = ((xv // grid_size) + (yv // grid_size)) % 2
+    return 255*checkerboard.astype(np.uint8)
 
 def target():
     pass
@@ -225,7 +225,7 @@ class Slave(app.Canvas):
         self.cylinder_program['a_fish'] = [0,0,5]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
         self.cylinder_program['u_blend_width'] = blend_width
-        self.cylinder_program['texture'] = checkerboard()
+        self.cylinder_program['texture'] = checkerboard(grid_num=int(height_mm//10))
         self.cylinder_program['texture'].wrapping = 'repeat'
 
         width, height = self.physical_size
@@ -351,7 +351,7 @@ class Master(app.Canvas):
         self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
         self.cylinder_program['u_blend_width'] = blend_width
-        self.cylinder_program['texture'] = checkerboard()
+        self.cylinder_program['texture'] = checkerboard(grid_num=int(height_mm//10))
         self.cylinder_program['texture'].wrapping = 'repeat'
 
         # model, view, projection 
@@ -459,7 +459,7 @@ class Master(app.Canvas):
 if __name__ == '__main__':
 
     radius_mm = 33
-    height_mm = 30
+    height_mm = 40
     fovy = 25
     shifty = 0.1
     blend_width = 0.4
