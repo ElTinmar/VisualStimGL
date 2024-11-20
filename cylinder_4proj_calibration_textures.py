@@ -21,22 +21,30 @@ from typing import Tuple
 
 # TODO let the master control calibration parameters ?
 
-def cylinder_texcoords(rows, cols, radius=[1.0, 1.0], length=1.0, offset=False):
+def cylinder_texcoords(rows, cols):
     texcoords = np.empty((rows+1, cols, 2), dtype=np.float32)
     texcoords[..., 0] = np.linspace(0, 1, num=rows+1, endpoint=True).reshape(rows+1,1)
-    texcoords[..., 1] = np.linspace(0, 2*np.pi, num=cols, endpoint=True).reshape(cols,)
+    texcoords[..., 1] = np.linspace(0, 1, num=cols, endpoint=True).reshape(cols,)
     texcoords = texcoords.reshape((rows+1)*cols, 2)
     return texcoords
 
-def checkerboard(height=256, width=256, grid_num=8):
+def checkerboard(height=256, width=256, grid_num=8, aspect_ratio=1):
     grid_size = height // grid_num
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
-    checkerboard = ((xv // grid_size) + (yv // grid_size)) % 2
-    return 255*checkerboard.astype(np.uint8)
+    out = ((xv // grid_size) + (aspect_ratio*yv // grid_size)) % 2
+    return 255*out.astype(np.uint8)
 
-def target():
-    pass
+def vertical_lines(height=256, width=256, line_num=4, thickness=1, aspect_ratio=1):
+    xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
+    out = (yv % (width//line_num)) < thickness
+    return 255*out.astype(np.uint8)
 
+def unit_grid(height=256, width=256, radius=1.0, length=1.0, thickness=1, gridsize_mm=10):
+    aspect_ratio = (2*np.pi*radius)/length
+    xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
+    out = (yv % (gridsize_mm*width/(2*np.pi*radius)) < thickness) | (xv % (gridsize_mm*height/length) < thickness*aspect_ratio) 
+    return 255*out.astype(np.uint8)
+ 
 use(gl='gl+')
 
 VERT_SHADER_CYLINDER ="""
@@ -135,7 +143,8 @@ void main()
 # in bool gl_FrontFacing;
 # in vec2 gl_PointCoord;
 FRAG_SHADER_CYLINDER = """
-uniform sampler2D texture;
+uniform sampler2D texture_vertical_bars;
+uniform sampler2D texture_grid;
 varying vec2 v_texcoord;
 
 uniform vec2 u_resolution;
@@ -144,14 +153,19 @@ uniform float u_blend_width;
 varying vec4 v_color;
 varying float v_depth;
 
-vec4 edge_blending(vec2 pos, vec4 col, float width) 
+float edge_blending(vec2 pos, float width) 
 {
-    return col * smoothstep(0.0, width, pos.x) * smoothstep(0.0, width, 1.0 - pos.x);
+    return smoothstep(0.0, width, pos.x) * smoothstep(0.0, width, 1.0 - pos.x);
 }
 
 void main()
 {
-    gl_FragColor =  texture2D(texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, v_color, u_blend_width);
+    vec4 grid_color = vec4(1.0, 0.0, 0.0, 1.0);
+    vec4 bar_color = vec4(0.0, 1.0, 1.0, 1.0);
+    gl_FragColor = (
+        bar_color * texture2D(texture_vertical_bars, v_texcoord) 
+        + grid_color * texture2D(texture_grid, v_texcoord)
+    ) * edge_blending(gl_FragCoord.xy/u_resolution, u_blend_width);
 }
 """
 
@@ -195,9 +209,7 @@ class Slave(app.Canvas):
         )
         texcoord = cylinder_texcoords(
             rows = int(height_mm//10), 
-            cols = int(2*np.pi*radius_mm//10), 
-            radius= (radius_mm,radius_mm),
-            length = height_mm 
+            cols = int(2*np.pi*radius_mm//10)
         )
 
         # cylinder
@@ -225,8 +237,10 @@ class Slave(app.Canvas):
         self.cylinder_program['a_fish'] = [0,0,5]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
         self.cylinder_program['u_blend_width'] = blend_width
-        self.cylinder_program['texture'] = checkerboard(grid_num=int(height_mm//10))
-        self.cylinder_program['texture'].wrapping = 'repeat'
+        #self.cylinder_program['texture'] = checkerboard(grid_num=int(height_mm//10), aspect_ratio=2*np.pi*radius_mm/height_mm)
+        #self.cylinder_program['texture'] = vertical_lines(aspect_ratio=2*np.pi*radius_mm/height_mm)
+        self.cylinder_program['texture_vertical_bars'] = vertical_lines(aspect_ratio=2*np.pi*radius_mm/height_mm)
+        self.cylinder_program['texture_grid'] = unit_grid(radius=radius_mm, length=height_mm)
 
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
@@ -283,9 +297,7 @@ class Master(app.Canvas):
         )
         texcoord = cylinder_texcoords(
             rows = int(height_mm//10), 
-            cols = int(2*np.pi*radius_mm//10), 
-            radius= (radius_mm,radius_mm),
-            length = height_mm 
+            cols = int(2*np.pi*radius_mm//10)
         )
 
         # rotation and translation gain
@@ -351,8 +363,10 @@ class Master(app.Canvas):
         self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
         self.cylinder_program['u_blend_width'] = blend_width
-        self.cylinder_program['texture'] = checkerboard(grid_num=int(height_mm//10))
-        self.cylinder_program['texture'].wrapping = 'repeat'
+        #self.cylinder_program['texture'] = checkerboard(grid_num=int(height_mm//10), aspect_ratio=2*np.pi*radius_mm/height_mm)
+        #self.cylinder_program['texture'] = vertical_lines(aspect_ratio=2*np.pi*radius_mm/height_mm)
+        self.cylinder_program['texture_vertical_bars'] = vertical_lines(aspect_ratio=2*np.pi*radius_mm/height_mm)
+        self.cylinder_program['texture_grid'] = unit_grid(radius=radius_mm, length=height_mm)
 
         # model, view, projection 
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
