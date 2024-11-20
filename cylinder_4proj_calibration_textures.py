@@ -24,7 +24,7 @@ from typing import Tuple
 def cylinder_texcoords(rows, cols, radius=[1.0, 1.0], length=1.0, offset=False):
     texcoords = np.empty((rows+1, cols, 2), dtype=np.float32)
     texcoords[..., 0] = np.linspace(0, 1, num=rows+1, endpoint=True).reshape(rows+1,1)
-    texcoords[..., 1] = np.linspace(0, 1, num=cols, endpoint=True).reshape(cols,)
+    texcoords[..., 1] = np.linspace(0, 2*np.pi, num=cols, endpoint=True).reshape(cols,)
     texcoords = texcoords.reshape((rows+1)*cols, 2)
     return texcoords
 
@@ -226,6 +226,7 @@ class Slave(app.Canvas):
         self.cylinder_program['a_cylinder_radius'] = radius_mm
         self.cylinder_program['u_blend_width'] = blend_width
         self.cylinder_program['texture'] = checkerboard()
+        self.cylinder_program['texture'].wrapping = 'repeat'
 
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
@@ -351,6 +352,7 @@ class Master(app.Canvas):
         self.cylinder_program['a_cylinder_radius'] = radius_mm
         self.cylinder_program['u_blend_width'] = blend_width
         self.cylinder_program['texture'] = checkerboard()
+        self.cylinder_program['texture'].wrapping = 'repeat'
 
         # model, view, projection 
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
