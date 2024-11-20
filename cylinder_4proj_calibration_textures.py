@@ -34,7 +34,7 @@ def checkerboard(height=256, width=256, grid_num=8, aspect_ratio=1):
     out = ((xv // grid_size) + (aspect_ratio*yv // grid_size)) % 2
     return 255*out.astype(np.uint8)
 
-def vertical_lines(height=256, width=256, line_num=4, thickness=1, aspect_ratio=1):
+def vertical_lines(height=256, width=256, line_num=4, thickness=1):
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
     out = (yv % (width//line_num)) < thickness
     return 255*out.astype(np.uint8)
@@ -189,6 +189,7 @@ class Slave(app.Canvas):
             height_mm: float = 50,
             fovy: float = 60,
             shifty: float = 0.5,
+            shiftx: float = 0.0,
             blend_width: float = 0.2
         ):
 
@@ -237,9 +238,7 @@ class Slave(app.Canvas):
         self.cylinder_program['a_fish'] = [0,0,5]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
         self.cylinder_program['u_blend_width'] = blend_width
-        #self.cylinder_program['texture'] = checkerboard(grid_num=int(height_mm//10), aspect_ratio=2*np.pi*radius_mm/height_mm)
-        #self.cylinder_program['texture'] = vertical_lines(aspect_ratio=2*np.pi*radius_mm/height_mm)
-        self.cylinder_program['texture_vertical_bars'] = vertical_lines(aspect_ratio=2*np.pi*radius_mm/height_mm)
+        self.cylinder_program['texture_vertical_bars'] = vertical_lines()
         self.cylinder_program['texture_grid'] = unit_grid(radius=radius_mm, length=height_mm)
 
         width, height = self.physical_size
@@ -248,6 +247,7 @@ class Slave(app.Canvas):
 
         projection = perspective(fovy, width / float(height), 1, 10_000)
         projection[2,1] += projection[1,1]*shifty # oblique frustum to account for proj lens shift
+        projection[2,0] += projection[0,0]*shiftx # oblique frustum to account for proj lens shift
 
         u_view = translate((tx,ty,tz)).dot(rotate(yaw, (0,1,0))).dot(rotate(roll, (0,0,1))).dot(rotate(pitch, (1,0,0)))
 
@@ -363,9 +363,7 @@ class Master(app.Canvas):
         self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
         self.cylinder_program['u_blend_width'] = blend_width
-        #self.cylinder_program['texture'] = checkerboard(grid_num=int(height_mm//10), aspect_ratio=2*np.pi*radius_mm/height_mm)
-        #self.cylinder_program['texture'] = vertical_lines(aspect_ratio=2*np.pi*radius_mm/height_mm)
-        self.cylinder_program['texture_vertical_bars'] = vertical_lines(aspect_ratio=2*np.pi*radius_mm/height_mm)
+        self.cylinder_program['texture_vertical_bars'] = vertical_lines()
         self.cylinder_program['texture_grid'] = unit_grid(radius=radius_mm, length=height_mm)
 
         # model, view, projection 
@@ -476,6 +474,7 @@ if __name__ == '__main__':
     height_mm = 40
     fovy = 25
     shifty = 0.1
+    shiftx = 0.0
     blend_width = 0.4
     proj_distance_mm = 200
 
@@ -493,6 +492,7 @@ if __name__ == '__main__':
         height_mm = height_mm,
         fovy = fovy,
         shifty = shifty,
+        shiftx = shiftx,
         blend_width = blend_width
     )
     proj1 = Slave(
@@ -525,6 +525,7 @@ if __name__ == '__main__':
         height_mm = height_mm,
         fovy = fovy,
         shifty = shifty,
+        shiftx = shiftx,
         blend_width = blend_width
     )
     proj3 = Slave(
@@ -541,6 +542,7 @@ if __name__ == '__main__':
         height_mm = height_mm,
         fovy = fovy,
         shifty = shifty,
+        shiftx = shiftx,
         blend_width = blend_width
     )
 
