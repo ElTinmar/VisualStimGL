@@ -470,13 +470,13 @@ class Master(app.Canvas):
 
 if __name__ == '__main__':
 
-    radius_mm = 33
-    height_mm = 40
-    fovy = 25
-    shifty = 0.1
+    radius_mm = 33.7
+    height_mm = 50
+    fovy = 24
+    shifty = 0.21
     shiftx = 0.0
     blend_width = 0.4
-    proj_distance_mm = 200
+    proj_distance_mm = 260
 
     proj0 = Slave(
         window_size = (800,600),
