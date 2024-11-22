@@ -34,15 +34,15 @@ def checkerboard(height=256, width=256, grid_num=8, aspect_ratio=1):
     out = ((xv // grid_size) + (aspect_ratio*yv // grid_size)) % 2
     return 255*out.astype(np.uint8)
 
-def vertical_lines(height=256, width=256, line_num=4, thickness=1):
+def vertical_lines(height=256, width=256, line_num=4, thickness=1, offset=0):
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
-    out = (yv % (width//line_num)) < thickness
+    out = ((yv+offset) % (width//line_num)) < thickness
     return 255*out.astype(np.uint8)
 
-def unit_grid(height=256, width=256, radius=1.0, length=1.0, thickness=1, gridsize_mm=10):
+def unit_grid(height=256, width=256, radius=1.0, length=1.0, thickness=1, gridsize_mm=10, offset_x=0, offset_y=0):
     aspect_ratio = (2*np.pi*radius)/length
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
-    out = (yv % (gridsize_mm*width/(2*np.pi*radius)) < thickness) | (xv % (gridsize_mm*height/length) < thickness*aspect_ratio) 
+    out = ((yv+offset_y) % (gridsize_mm*width/(2*np.pi*radius)) < thickness) | ((xv+offset_x) % (gridsize_mm*height/length) < thickness*aspect_ratio) 
     return 255*out.astype(np.uint8)
  
 use(gl='gl+')
@@ -236,7 +236,7 @@ class Slave(app.Canvas):
         self.cylinder_program['a_cylinder_radius'] = radius_mm
         self.cylinder_program['u_blend_width'] = blend_width
         self.cylinder_program['texture_vertical_bars'] = vertical_lines()
-        self.cylinder_program['texture_grid'] = unit_grid(radius=radius_mm, length=height_mm)
+        self.cylinder_program['texture_grid'] = unit_grid(radius=radius_mm, length=height_mm, offset_x=0, offset_y=10)
 
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
