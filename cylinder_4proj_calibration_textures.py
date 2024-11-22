@@ -24,7 +24,7 @@ from typing import Tuple
 def cylinder_texcoords(rows, cols):
     texcoords = np.empty((rows+1, cols, 2), dtype=np.float32)
     texcoords[..., 0] = np.linspace(0, 1, num=rows+1, endpoint=True).reshape(rows+1,1)
-    texcoords[..., 1] = np.linspace(0, 1, num=cols, endpoint=True).reshape(cols,)
+    texcoords[..., 1] = np.linspace(0, 1, num=cols, endpoint=True)
     texcoords = texcoords.reshape((rows+1)*cols, 2)
     return texcoords
 
@@ -232,7 +232,7 @@ class Slave(app.Canvas):
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['a_fish'] = [0,0,5]
+        self.cylinder_program['a_fish'] = [0,0,0]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
         self.cylinder_program['u_blend_width'] = blend_width
         self.cylinder_program['texture_vertical_bars'] = vertical_lines()
