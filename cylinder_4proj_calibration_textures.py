@@ -188,8 +188,6 @@ class Slave(app.Canvas):
             radius_mm: float = 100,
             height_mm: float = 50,
             fovy: float = 60,
-            shifty: float = 0.5,
-            shiftx: float = 0.0,
             blend_width: float = 0.2
         ):
 
@@ -245,9 +243,15 @@ class Slave(app.Canvas):
         gloo.set_viewport(0, 0, width, height)
         self.cylinder_program['u_resolution'] = [width, height]
 
-        projection = perspective(fovy, width / float(height), 1, 10_000)
-        projection[2,1] += projection[1,1]*shifty # oblique frustum to account for proj lens shift
-        projection[2,0] += projection[0,0]*shiftx # oblique frustum to account for proj lens shift
+        # oblique frustum to match projector offset
+        aspect_ratio = width / float(height)
+        znear = 1
+        zfar = 10_000
+        top = np.tan(np.deg2rad(fovy)) * znear
+        bottom = 0
+        right = top/2 * aspect_ratio
+        left = -right
+        projection = frustum(left, right, bottom, top, znear, zfar)
 
         u_view = translate((tx,ty,tz)).dot(rotate(yaw, (0,1,0))).dot(rotate(roll, (0,0,1))).dot(rotate(pitch, (1,0,0)))
 
@@ -471,10 +475,8 @@ class Master(app.Canvas):
 if __name__ == '__main__':
 
     radius_mm = 33.7
-    height_mm = 50
+    height_mm = 100
     fovy = 24
-    shifty = 0.21
-    shiftx = 0.0
     blend_width = 0.4
     proj_distance_mm = 260
 
@@ -491,8 +493,6 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        shifty = shifty,
-        shiftx = shiftx,
         blend_width = blend_width
     )
     proj1 = Slave(
@@ -508,7 +508,6 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        shifty = shifty,
         blend_width = blend_width
     )
     proj2 = Slave(
@@ -524,8 +523,6 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        shifty = shifty,
-        shiftx = shiftx,
         blend_width = blend_width
     )
     proj3 = Slave(
@@ -541,8 +538,6 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        shifty = shifty,
-        shiftx = shiftx,
         blend_width = blend_width
     )
 
