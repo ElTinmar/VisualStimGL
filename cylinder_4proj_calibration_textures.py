@@ -268,7 +268,8 @@ class Slave(app.Canvas):
         self.cylinder_program.draw('triangles', self.indices)
 
     def set_state(self, x, y, z):
-        self.cylinder_program['a_fish'] = [x, y, z]
+        #self.cylinder_program['a_fish'] = [x, y, z]
+        self.cylinder_program['texture_grid'] = unit_grid(radius=radius_mm, length=height_mm, offset_x=x, offset_y=y) 
         self.update()
 
 
