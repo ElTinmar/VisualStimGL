@@ -157,6 +157,11 @@ float edge_blending(vec2 pos, float width)
     return smoothstep(0.0, width, pos.x) * smoothstep(0.0, width, 1.0 - pos.x);
 }
 
+float edge_blending2(vec2 pos, float start, float stop) 
+{
+    return smoothstep(start, stop, pos.x) * smoothstep(start, stop, 1.0 - pos.x);
+}
+
 void main()
 {
     vec4 grid_color = vec4(1.0, 0.0, 0.0, 1.0);
@@ -164,7 +169,7 @@ void main()
     gl_FragColor = (
         bar_color * texture2D(texture_vertical_bars, v_texcoord) 
         + grid_color * texture2D(texture_grid, v_texcoord)
-    ) * edge_blending(gl_FragCoord.xy/u_resolution, u_blend_width);
+    ) * edge_blending2(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
 }
 """
 
