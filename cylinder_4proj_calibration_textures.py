@@ -461,9 +461,9 @@ if __name__ == '__main__':
 
     radius_mm = 33.7
     height_mm = 100
-    fovy = 35.5
-    blend_width = 0.4
-    proj_distance_mm = 170
+    fovy = 25.6
+    blend_width = 0.6
+    proj_distance_mm = 210
 
     proj0 = Slave(
         window_size = (800,600),
