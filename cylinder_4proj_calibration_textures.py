@@ -39,10 +39,9 @@ def vertical_lines(height=1024, width=1024, line_num=4, thickness=3, offset=0):
     out = ((yv+offset) % (width//line_num)) < thickness
     return 255*out.astype(np.uint8)
 
-def unit_grid(height=1024, width=1024, radius=1.0, length=1.0, thickness=3, gridsize_mm=10, offset_x=0, offset_y=0):
-    aspect_ratio = (2*np.pi*radius)/length
+def unit_grid(height=1024, width=1024, radius=1.0, length=1.0, thickness_mm=0.5, gridsize_mm=10, offset_x=0, offset_y=0):
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
-    out = ((yv+offset_y) % (gridsize_mm*width/(2*np.pi*radius)) < thickness) | ((xv+offset_x) % (gridsize_mm*height/length) < thickness*aspect_ratio) 
+    out = ((yv+offset_y) % (gridsize_mm*width/(2*np.pi*radius)) < (thickness_mm * width/(2*np.pi*radius))) | ((xv+offset_x) % (gridsize_mm*height/length) < (thickness_mm * height/length)) 
     return 255*out.astype(np.uint8)
  
 use(gl='gl+')
