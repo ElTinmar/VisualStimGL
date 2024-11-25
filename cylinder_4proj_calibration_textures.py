@@ -34,12 +34,12 @@ def checkerboard(height=256, width=256, grid_num=8, aspect_ratio=1):
     out = ((xv // grid_size) + (aspect_ratio*yv // grid_size)) % 2
     return 255*out.astype(np.uint8)
 
-def vertical_lines(height=256, width=256, line_num=4, thickness=1, offset=0):
+def vertical_lines(height=1024, width=1024, line_num=4, thickness=3, offset=0):
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
     out = ((yv+offset) % (width//line_num)) < thickness
     return 255*out.astype(np.uint8)
 
-def unit_grid(height=256, width=256, radius=1.0, length=1.0, thickness=1, gridsize_mm=10, offset_x=0, offset_y=0):
+def unit_grid(height=1024, width=1024, radius=1.0, length=1.0, thickness=3, gridsize_mm=10, offset_x=0, offset_y=0):
     aspect_ratio = (2*np.pi*radius)/length
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
     out = ((yv+offset_y) % (gridsize_mm*width/(2*np.pi*radius)) < thickness) | ((xv+offset_x) % (gridsize_mm*height/length) < thickness*aspect_ratio) 
@@ -269,6 +269,7 @@ class Slave(app.Canvas):
 
     def set_state(self, x, y, z):
         #self.cylinder_program['a_fish'] = [x, y, z]
+        print(x,y)
         self.cylinder_program['texture_grid'] = unit_grid(radius=radius_mm, length=height_mm, offset_x=x, offset_y=y) 
         self.update()
 
@@ -460,9 +461,9 @@ if __name__ == '__main__':
 
     radius_mm = 33.7
     height_mm = 100
-    fovy = 24
+    fovy = 35.5
     blend_width = 0.4
-    proj_distance_mm = 260
+    proj_distance_mm = 170
 
     proj0 = Slave(
         window_size = (800,600),
@@ -510,7 +511,7 @@ if __name__ == '__main__':
         blend_width = blend_width
     )
     proj3 = Slave(
-        window_size = (1280,800),
+        window_size = (800,600),
         window_position = (4320,0),
         fullscreen = False,
         tx = -proj_distance_mm,
