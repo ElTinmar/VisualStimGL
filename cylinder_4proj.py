@@ -53,8 +53,6 @@ use(gl='gl+')
 
 VERT_SHADER_CYLINDER ="""
 // uniforms
-uniform sampler2D texture;
-
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
