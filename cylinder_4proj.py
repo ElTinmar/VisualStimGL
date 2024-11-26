@@ -20,7 +20,6 @@ def cylinder_texcoords(rows, cols):
     return texcoords
 
 ## Texture generation
-
 def checkerboard(height=256, width=256, grid_num=8, aspect_ratio=1):
     grid_size = height // grid_num
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
@@ -83,7 +82,6 @@ vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
 
     // helpful variables
     float x_ = x_f - x_v;
-    float y_ = y_f - y_v;
     float z_ = z_f - z_v;
     float xz_ = (x_f*z_v - x_v*z_f);
     float xy_ = (x_f*y_v - x_v*y_f);
@@ -103,7 +101,7 @@ vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     vec3 sol1 = vec3(x1, y1, z1);
     vec3 sol;
     float dir = dot(sol0-fish_pos, vertex_pos-fish_pos);
-    dir > 0.0f ? sol = sol0 : sol = sol1; 
+    dir >= 0.0f ? sol = sol0 : sol = sol1; 
 
     return sol;
 } 
@@ -244,6 +242,7 @@ class Slave(app.Canvas):
 
     def set_state(self, x, y, z):
         self.cylinder_program['u_fish'] = [x, y, z]
+        print(self.cylinder_program['u_fish'])
         self.update()
 
 class Master(app.Canvas):
