@@ -48,8 +48,6 @@ use(gl='gl+')
 
 VERT_SHADER_CYLINDER ="""
 // uniforms
-uniform sampler2D texture;
-
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
@@ -59,10 +57,8 @@ attribute vec3 a_position;
 attribute vec2 texcoord;
 attribute vec3 a_fish;
 attribute float a_cylinder_radius;
-attribute vec4 a_color;
 
 // varying
-varying vec4 v_color;
 varying float v_depth;
 varying vec2 v_texcoord;
 
@@ -128,7 +124,6 @@ void main()
 
     // view and projection
     gl_Position = u_projection * u_view * vec4(proj,1.0);
-    v_color = a_color;
 
     // send depth info
     vec4 position = u_projection * u_view * vertex_coords;
@@ -147,17 +142,10 @@ uniform sampler2D texture_grid;
 varying vec2 v_texcoord;
 
 uniform vec2 u_resolution;
-uniform float u_blend_width;
 
-varying vec4 v_color;
 varying float v_depth;
 
-float edge_blending(vec2 pos, float width) 
-{
-    return smoothstep(0.0, width, pos.x) * smoothstep(0.0, width, 1.0 - pos.x);
-}
-
-float edge_blending2(vec2 pos, float start, float stop) 
+float edge_blending(vec2 pos, float start, float stop) 
 {
     return smoothstep(start, stop, pos.x) * smoothstep(start, stop, 1.0 - pos.x);
 }
@@ -169,7 +157,7 @@ void main()
     gl_FragColor = (
         bar_color * texture2D(texture_vertical_bars, v_texcoord) 
         + grid_color * texture2D(texture_grid, v_texcoord)
-    ) * edge_blending2(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
+    ) * edge_blending(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
 }
 """
 
@@ -192,7 +180,6 @@ class Slave(app.Canvas):
             radius_mm: float = 100,
             height_mm: float = 50,
             fovy: float = 60,
-            blend_width: float = 0.2
         ):
 
         app.Canvas.__init__(
@@ -205,14 +192,14 @@ class Slave(app.Canvas):
         )
 
         mesh_data = create_cylinder(
-            rows = int(height_mm//10), 
-            cols = int(2*np.pi*radius_mm//10), 
+            rows = 10, 
+            cols = 36, 
             radius= (radius_mm,radius_mm),
             length = height_mm 
         )
         texcoord = cylinder_texcoords(
-            rows = int(height_mm//10), 
-            cols = int(2*np.pi*radius_mm//10)
+            rows = 10, 
+            cols = 36
         )
 
         # cylinder
@@ -221,15 +208,13 @@ class Slave(app.Canvas):
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(-90, (1,0,0)))
         positions = positions[:,:-1]
-        col = np.array([1.0, 1.0, 0.0, 1.0])
-        colors =  np.tile(col, (mesh_data.n_vertices,1))
 
-        vtype = [('a_position', np.float32, 3),
-             ('a_color', np.float32, 4),
-             ('texcoord', np.float32, 2)]
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('texcoord', np.float32, 2)
+        ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
-        vertex['a_color'] = colors
         vertex['texcoord'] = texcoord
         
         indices = mesh_data.get_faces()
@@ -238,7 +223,6 @@ class Slave(app.Canvas):
         self.cylinder_program.bind(vbo)
         self.cylinder_program['a_fish'] = [0,0,0]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
-        self.cylinder_program['u_blend_width'] = blend_width
         self.cylinder_program['texture_vertical_bars'] = vertical_lines()
         self.cylinder_program['texture_grid'] = unit_grid(radius=radius_mm, length=height_mm, offset_x=0, offset_y=10)
 
@@ -284,7 +268,6 @@ class Master(app.Canvas):
             slaves,
             radius_mm: float = 100,
             height_mm: float = 50, 
-            blend_width: float = 0.2
         ):
 
         app.Canvas.__init__(
@@ -299,14 +282,14 @@ class Master(app.Canvas):
 
         # mesh
         mesh_data = create_cylinder(
-            rows = int(height_mm//10), 
-            cols = int(2*np.pi*radius_mm//10), 
+            rows = 10, 
+            cols = 36, 
             radius = (radius_mm,radius_mm), 
             length = height_mm
         )
         texcoord = cylinder_texcoords(
-            rows = int(height_mm//10), 
-            cols = int(2*np.pi*radius_mm//10)
+            rows = 10, 
+            cols = 36
         )
 
         # rotation and translation gain
@@ -338,16 +321,13 @@ class Master(app.Canvas):
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(-90, (1,0,0)))
         positions = positions[:,:-1]
-        col = np.array([1.0, 1.0, 0.0, 1.0])
-        colors =  np.tile(col, (mesh_data.n_vertices,1))
-        colors[positions[:,0]<0] = np.array([0.0, 1.0, 0.0, 1.0])
 
-        vtype = [('a_position', np.float32, 3),
-             ('a_color', np.float32, 4),
-             ('texcoord', np.float32, 2)]
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('texcoord', np.float32, 2)
+        ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
-        vertex['a_color'] = colors
         vertex['texcoord'] = texcoord
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
@@ -355,7 +335,6 @@ class Master(app.Canvas):
         self.cylinder_program.bind(vbo)
         self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
-        self.cylinder_program['u_blend_width'] = blend_width
         self.cylinder_program['texture_vertical_bars'] = vertical_lines()
         self.cylinder_program['texture_grid'] = unit_grid(radius=radius_mm, length=height_mm)
 
@@ -466,7 +445,6 @@ if __name__ == '__main__':
     radius_mm = 33.7
     height_mm = 100
     fovy = 25.6
-    blend_width = 0.6
     proj_distance_mm = 210
 
     proj0 = Slave(
@@ -482,7 +460,6 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        blend_width = blend_width
     )
     proj1 = Slave(
         window_size = (800,600),
@@ -497,7 +474,6 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        blend_width = blend_width
     )
     proj2 = Slave(
         window_size = (800,600),
@@ -512,7 +488,6 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        blend_width = blend_width
     )
     proj3 = Slave(
         window_size = (800,600),
@@ -527,14 +502,12 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        blend_width = blend_width
     )
 
     master = Master(
         slaves = [proj0, proj1, proj2, proj3],
         radius_mm = radius_mm,
         height_mm = height_mm,
-        blend_width = blend_width
     )
 
     if sys.flags.interactive != 1:
