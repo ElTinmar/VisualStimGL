@@ -13,5 +13,5 @@ dependencies:
     - matplotlib
     - PyOpenGL 
     - PyOpenGL_accelerate
- 
+    - sympy
 
