@@ -64,10 +64,8 @@ attribute vec3 a_position;
 attribute vec2 texcoord;
 attribute vec3 a_fish;
 attribute float a_cylinder_radius;
-attribute vec4 a_color;
 
 // varying
-varying vec4 v_color;
 varying float v_depth;
 varying vec2 v_texcoord;
 
@@ -132,7 +130,6 @@ void main()
     // v_depth = position.z/position.w; // NDC depth
 
     v_depth = length(position-fish_proj)/length(screen-fish_proj);
-    v_color = a_color;
     v_texcoord = texcoord;
 
     gl_Position = screen;
@@ -148,24 +145,17 @@ uniform sampler2D texture;
 varying vec2 v_texcoord;
 
 uniform vec2 u_resolution;
-uniform float u_blend_width;
 
-varying vec4 v_color;
 varying float v_depth;
 
-float edge_blending(vec2 pos, float width) 
-{
-    return smoothstep(0.0, width, pos.x) * smoothstep(0.0, width, 1.0 - pos.x);
-}
-
-float edge_blending2(vec2 pos, float start, float stop) 
+float edge_blending(vec2 pos, float start, float stop) 
 {
     return smoothstep(start, stop, pos.x) * smoothstep(start, stop, 1.0 - pos.x);
 }
 
 void main()
 {
-    gl_FragColor = texture2D(texture, v_texcoord) * edge_blending2(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
+    gl_FragColor = texture2D(texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
     gl_FragDepth = v_depth;
 }
 """
@@ -189,7 +179,6 @@ class Slave(app.Canvas):
             radius_mm: float = 100,
             height_mm: float = 50,
             fovy: float = 60,
-            blend_width: float = 0.2
         ):
 
         app.Canvas.__init__(
@@ -218,15 +207,13 @@ class Slave(app.Canvas):
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(-90, (1,0,0)))
         positions = positions[:,:-1]
-        col = np.array([1.0, 1.0, 0.0, 1.0])
-        colors =  np.tile(col, (mesh_data.n_vertices,1))
 
-        vtype = [('a_position', np.float32, 3),
-             ('a_color', np.float32, 4),
-             ('texcoord', np.float32, 2)]
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('texcoord', np.float32, 2)
+        ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
-        vertex['a_color'] = colors
         vertex['texcoord'] = texcoord
         
         indices = mesh_data.get_faces()
@@ -235,7 +222,6 @@ class Slave(app.Canvas):
         self.cylinder_program.bind(vbo)
         self.cylinder_program['a_fish'] = [0,0,0]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
-        self.cylinder_program['u_blend_width'] = blend_width
         self.cylinder_program['texture'] = two_colors()
 
         width, height = self.physical_size
@@ -271,14 +257,12 @@ class Slave(app.Canvas):
         self.cylinder_program['a_fish'] = [x, y, z]
         self.update()
 
-
 class Master(app.Canvas):
     def __init__(
             self, 
             slaves,
             radius_mm: float = 100,
             height_mm: float = 50, 
-            blend_width: float = 0.2
         ):
 
         app.Canvas.__init__(
@@ -332,16 +316,12 @@ class Master(app.Canvas):
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(-90, (1,0,0)))
         positions = positions[:,:-1]
-        col = np.array([1.0, 1.0, 0.0, 1.0])
-        colors =  np.tile(col, (mesh_data.n_vertices,1))
-        colors[positions[:,0]<0] = np.array([0.0, 1.0, 0.0, 1.0])
-
-        vtype = [('a_position', np.float32, 3),
-             ('a_color', np.float32, 4),
-             ('texcoord', np.float32, 2)]
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('texcoord', np.float32, 2)
+        ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
-        vertex['a_color'] = colors
         vertex['texcoord'] = texcoord
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
@@ -349,7 +329,6 @@ class Master(app.Canvas):
         self.cylinder_program.bind(vbo)
         self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
         self.cylinder_program['a_cylinder_radius'] = radius_mm
-        self.cylinder_program['u_blend_width'] = blend_width
         self.cylinder_program['texture'] = two_colors()
 
         # model, view, projection 
@@ -459,7 +438,6 @@ if __name__ == '__main__':
     radius_mm = 5
     height_mm = 30
     fovy = 25.6
-    blend_width = 0.6
     proj_distance_mm = 210
 
     proj0 = Slave(
@@ -475,7 +453,6 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        blend_width = blend_width
     )
     proj1 = Slave(
         window_size = (800,600),
@@ -490,7 +467,6 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        blend_width = blend_width
     )
     proj2 = Slave(
         window_size = (800,600),
@@ -505,7 +481,6 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        blend_width = blend_width
     )
     proj3 = Slave(
         window_size = (800,600),
@@ -520,14 +495,12 @@ if __name__ == '__main__':
         radius_mm = radius_mm,
         height_mm = height_mm,
         fovy = fovy,
-        blend_width = blend_width
     )
 
     master = Master(
         slaves = [proj0, proj1, proj2, proj3],
         radius_mm = radius_mm,
         height_mm = height_mm,
-        blend_width = blend_width
     )
 
     if sys.flags.interactive != 1:
