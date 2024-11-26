@@ -156,4 +156,5 @@ def solutions1(v, f, r):
     sol1 = np.array([x1,y1,z1])
     return (sol0, sol1)
 
-solutions1([-2,0,-2],[0,0,-5],100)
+solutions0([-2,1,5],[1,6,-2],10)
+solutions1([-2,1,5],[1,6,-2],10)
