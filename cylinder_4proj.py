@@ -11,22 +11,15 @@ from typing import Tuple
 # if fish outside, it breaks, because fish can't be outside.
 # Remove fish and navigation alltogether for calibration ?    
 
-# TODO can I match perspective frustum with projector offset ? 
-
-# TODO identify calibration parameters
-#   - radius
-#   - position of each proj
-#   - angles of each proj
-#   - fovy  
-
-# TODO let the master control calibration parameters ?
-
+## UV mapping
 def cylinder_texcoords(rows, cols):
     texcoords = np.empty((rows+1, cols, 2), dtype=np.float32)
     texcoords[..., 0] = np.linspace(0, 1, num=rows+1, endpoint=True).reshape(rows+1,1)
     texcoords[..., 1] = np.linspace(0, 1, num=cols, endpoint=True)
     texcoords = texcoords.reshape((rows+1)*cols, 2)
     return texcoords
+
+## Texture generation
 
 def checkerboard(height=256, width=256, grid_num=8, aspect_ratio=1):
     grid_size = height // grid_num
@@ -46,7 +39,7 @@ def unit_grid(height=1024, width=1024, radius=1.0, length=1.0, thickness_mm=0.5,
  
 def two_colors(height=1024, width=1024):
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
-    out = np.dstack(((yv < width//2),(yv >= width//2),(yv<0)))
+    out = np.dstack(((yv < width//2), (yv >= width//2), (yv<0)))
     return 255*out.astype(np.uint8)
  
 use(gl='gl+')
@@ -56,17 +49,16 @@ VERT_SHADER_CYLINDER ="""
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
+uniform vec3 u_fish;
+uniform float u_cylinder_radius;
 
 // per-vertex attributes
 attribute vec3 a_position;
-attribute vec2 texcoord;
-attribute vec3 a_fish;
-attribute float a_cylinder_radius;
+attribute vec2 a_texcoord;
 
 // varying
 varying float v_depth;
 varying vec2 v_texcoord;
-
 
 // TODO check what happens when fish_pos = vertex_pos
 vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) { 
@@ -119,16 +111,16 @@ vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
 void main()
 {
     vec4 vertex_coord = u_model * vec4(a_position,1.0);
-    vec3 screen_coord = cylinder_proj(a_fish, vertex_coord.xyz, a_cylinder_radius);
+    vec3 screen_coord = cylinder_proj(u_fish, vertex_coord.xyz, u_cylinder_radius);
 
     vec4 screen = u_projection * u_view * vec4(screen_coord, 1.0);
     vec4 position = u_projection * u_view * vertex_coord;
-    vec4 fish_proj = u_projection * u_view * vec4(a_fish, 1.0);
+    vec4 fish_proj = u_projection * u_view * vec4(u_fish, 1.0);
 
     // v_depth = position.z/position.w; // NDC depth
 
     v_depth = length(position-fish_proj)/length(screen-fish_proj);
-    v_texcoord = texcoord;
+    v_texcoord = a_texcoord;
 
     gl_Position = screen;
 }
@@ -139,11 +131,10 @@ void main()
 # in bool gl_FrontFacing;
 # in vec2 gl_PointCoord;
 FRAG_SHADER_CYLINDER = """
-uniform sampler2D texture;
-varying vec2 v_texcoord;
-
+uniform sampler2D u_texture;
 uniform vec2 u_resolution;
 
+varying vec2 v_texcoord;
 varying float v_depth;
 
 float edge_blending(vec2 pos, float start, float stop) 
@@ -153,7 +144,7 @@ float edge_blending(vec2 pos, float start, float stop)
 
 void main()
 {
-    gl_FragColor = texture2D(texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
+    gl_FragColor = texture2D(u_texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
     gl_FragDepth = v_depth;
 }
 """
@@ -194,7 +185,7 @@ class Slave(app.Canvas):
             radius= (radius_mm,radius_mm),
             length = height_mm 
         )
-        texcoord = cylinder_texcoords(
+        a_texcoord = cylinder_texcoords(
             rows = 10, 
             cols = 36
         )
@@ -208,19 +199,19 @@ class Slave(app.Canvas):
 
         vtype = [
             ('a_position', np.float32, 3),
-            ('texcoord', np.float32, 2)
+            ('a_texcoord', np.float32, 2)
         ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
-        vertex['texcoord'] = texcoord
+        vertex['a_texcoord'] = a_texcoord
         
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['a_fish'] = [0,0,0]
-        self.cylinder_program['a_cylinder_radius'] = radius_mm
-        self.cylinder_program['texture'] = two_colors()
+        self.cylinder_program['u_fish'] = [0,0,0]
+        self.cylinder_program['u_cylinder_radius'] = radius_mm
+        self.cylinder_program['u_texture'] = two_colors()
 
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
@@ -235,11 +226,11 @@ class Slave(app.Canvas):
         right = top/2 * aspect_ratio
         left = -right
         projection = frustum(left, right, bottom, top, znear, zfar)
-
+        
         u_view = translate((tx,ty,tz)).dot(rotate(yaw, (0,1,0))).dot(rotate(roll, (0,0,1))).dot(rotate(pitch, (1,0,0)))
 
-        self.cylinder_program["u_view"] = u_view
-        self.cylinder_program["u_model"] = translate((0,0,0))
+        self.cylinder_program['u_view'] = u_view
+        self.cylinder_program['u_model'] = translate((0,0,0))
         self.cylinder_program['u_projection'] = projection
         
         # required for object in the Z axis to hide each other
@@ -252,7 +243,7 @@ class Slave(app.Canvas):
         self.cylinder_program.draw('triangles', self.indices)
 
     def set_state(self, x, y, z):
-        self.cylinder_program['a_fish'] = [x, y, z]
+        self.cylinder_program['u_fish'] = [x, y, z]
         self.update()
 
 class Master(app.Canvas):
@@ -280,7 +271,7 @@ class Master(app.Canvas):
             radius = (radius_mm,radius_mm), 
             length = height_mm
         )
-        texcoord = cylinder_texcoords(
+        a_texcoord = cylinder_texcoords(
             rows = 10, 
             cols = 36
         )
@@ -316,18 +307,18 @@ class Master(app.Canvas):
         positions = positions[:,:-1]
         vtype = [
             ('a_position', np.float32, 3),
-            ('texcoord', np.float32, 2)
+            ('a_texcoord', np.float32, 2)
         ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
-        vertex['texcoord'] = texcoord
+        vertex['a_texcoord'] = a_texcoord
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
-        self.cylinder_program['a_cylinder_radius'] = radius_mm
-        self.cylinder_program['texture'] = two_colors()
+        self.cylinder_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
+        self.cylinder_program['u_cylinder_radius'] = radius_mm
+        self.cylinder_program['u_texture'] = two_colors()
 
         # model, view, projection 
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
@@ -339,8 +330,8 @@ class Master(app.Canvas):
 
         projection = perspective(self.fovy, width / float(height), self.z_near, self.z_far)
 
-        self.cylinder_program["u_view"] = self.view
-        self.cylinder_program["u_model"] = self.cylinder_model
+        self.cylinder_program['u_view'] = self.view
+        self.cylinder_program['u_model'] = self.cylinder_model
         self.cylinder_program['u_projection'] = projection
         
         # required for object in the Z axis to hide each other
@@ -412,7 +403,7 @@ class Master(app.Canvas):
 
             self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
             self.cylinder_program['u_view'] = self.view
-            self.cylinder_program['a_fish'] = [self.cam_x, self.cam_y, self.cam_z]
+            self.cylinder_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
             #print(f'Yaw: {self.cam_yaw}, Pitch: {self.cam_pitch}, Roll: {self.cam_roll}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
             
             for slave in self.slaves:
