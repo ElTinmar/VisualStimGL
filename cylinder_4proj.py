@@ -44,7 +44,7 @@ def two_colors(height=1024, width=1024):
  
 use(gl='gl+')
 
-VERT_SHADER_CYLINDER ="""
+VERT_SHADER_CYLINDER = """
 // uniforms
 uniform mat4 u_model;
 uniform mat4 u_view;
