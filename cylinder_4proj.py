@@ -180,8 +180,8 @@ class Slave(app.Canvas):
         mesh_data = create_cylinder(
             rows = 10, 
             cols = 36, 
-            radius= (radius_mm,radius_mm),
-            length = height_mm 
+            radius= 5,
+            length = 30 
         )
         a_texcoord = cylinder_texcoords(
             rows = 10, 
@@ -267,8 +267,8 @@ class Master(app.Canvas):
         mesh_data = create_cylinder(
             rows = 10, 
             cols = 36, 
-            radius = (radius_mm,radius_mm), 
-            length = height_mm
+            radius = 5, 
+            length = 30
         )
         a_texcoord = cylinder_texcoords(
             rows = 10, 
@@ -316,7 +316,7 @@ class Master(app.Canvas):
         self.indices = gloo.IndexBuffer(indices)
         self.cylinder_program.bind(vbo)
         self.cylinder_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
-        self.cylinder_program['u_cylinder_radius'] = radius_mm
+        self.cylinder_program['u_cylinder_radius'] = 33.7
         self.cylinder_program['u_texture'] = two_colors()
 
         # model, view, projection 
@@ -423,8 +423,8 @@ class Master(app.Canvas):
 
 if __name__ == '__main__':
 
-    radius_mm = 5
-    height_mm = 30
+    radius_mm = 33.7
+    height_mm = 100
     fovy = 25.6
     proj_distance_mm = 210
 
