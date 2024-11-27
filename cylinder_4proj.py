@@ -131,7 +131,7 @@ void main()
     vec4 fish_proj = u_projection * u_view * vec4(u_fish, 1.0);
 
     //v_depth = position.z/position.w; // NDC depth
-    v_depth = length(position-fish_proj)/length(screen-fish_proj);
+    v_depth = length(position-fish_proj)/length(screen-fish_proj);    
     v_texcoord = a_texcoord;
 
     gl_Position = screen;
@@ -374,11 +374,13 @@ class Master(app.Canvas):
         positions = positions[:,:-1]
         vtype = [
             ('a_position', np.float32, 3),
-            ('a_texcoord', np.float32, 2)
+            ('a_texcoord', np.float32, 2),
+            ('a_normal', np.float32, 3)
         ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
         vertex['a_texcoord'] = a_texcoord
+        vertex['a_normal'] = mesh_data.get_vertex_normals()
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
