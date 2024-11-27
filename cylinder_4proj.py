@@ -40,7 +40,12 @@ def two_colors(height=1024, width=1024):
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
     out = np.dstack(((yv < width//2), (yv >= width//2), (yv<0)))
     return 255*out.astype(np.uint8)
- 
+
+def black(height=1024, width=1024):
+    xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
+    out = np.dstack(((yv < 0), (yv < 0), (yv>=0)))
+    return 255*out.astype(np.uint8)
+
 use(gl='gl+')
 
 VERT_SHADER_CYLINDER = """
@@ -121,7 +126,7 @@ void main()
     vec4 position = u_projection * u_view * vertex_coord;
     vec4 fish_proj = u_projection * u_view * vec4(u_fish, 1.0);
 
-    // v_depth = position.z/position.w; // NDC depth
+    //v_depth = position.z/position.w; // NDC depth
 
     v_depth = length(position-fish_proj)/length(screen-fish_proj);
     v_texcoord = a_texcoord;
@@ -149,7 +154,7 @@ float edge_blending(vec2 pos, float start, float stop)
 void main()
 {
     gl_FragColor = texture2D(u_texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
-    gl_FragDepth = v_depth;
+    //gl_FragDepth = v_depth;
 }
 """
 
@@ -174,6 +179,16 @@ class Slave(app.Canvas):
             fovy: float = 60,
         ):
 
+        self.tx = tx
+        self.ty = ty
+        self.tz = tz
+        self.yaw = yaw
+        self.pitch = pitch
+        self.roll = roll
+        self.radius_mm = radius_mm
+        self.height_mm = height_mm
+        self.fovy = fovy
+        
         app.Canvas.__init__(
             self, 
             size = window_size, 
@@ -183,24 +198,46 @@ class Slave(app.Canvas):
             keys = 'interactive'
         )
 
+        self.set_context()
+        self.create_view()
+        self.create_projection()
+        self.create_screen()
+        self.create_cylinder()
+        self.show()
+
+    def set_context(self):
+        self.width, self.height = self.physical_size
+        gloo.set_viewport(0, 0, self.width, self.height)
+        gloo.set_state(depth_test=True)  # required for object in the Z axis to hide each other
+
+    def create_view(self):
+        self.view = translate((self.tx,self.ty,self.tz)).dot(rotate(self.yaw, (0,1,0))).dot(rotate(self.roll, (0,0,1))).dot(rotate(self.pitch, (1,0,0)))
+
+    def create_projection(self):
+        aspect_ratio = self.width / float(self.height)
+        znear = 1
+        zfar = 10_000
+        top = np.tan(np.deg2rad(self.fovy)) * znear
+        bottom = 0
+        right = top/2 * aspect_ratio
+        left = -right
+        self.projection = frustum(left, right, bottom, top, znear, zfar)
+
+    def create_screen(self):
         mesh_data = create_cylinder(
             rows = 10, 
             cols = 36, 
-            radius= 5,
-            length = 30 
+            radius = (self.radius_mm, self.radius_mm), # remove epsilon ?
+            length = self.height_mm 
         )
         a_texcoord = cylinder_texcoords(
             rows = 10, 
             cols = 36
         )
-
-        # cylinder
-        self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         positions = mesh_data.get_vertices()
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(-90, (1,0,0)))
         positions = positions[:,:-1]
-
         vtype = [
             ('a_position', np.float32, 3),
             ('a_texcoord', np.float32, 2)
@@ -209,46 +246,72 @@ class Slave(app.Canvas):
         vertex['a_position'] = positions
         vertex['a_texcoord'] = a_texcoord
         
+        # set up buffers
+        indices = mesh_data.get_faces()
+        vbo = gloo.VertexBuffer(vertex)
+        self.screen_indices = gloo.IndexBuffer(indices)
+
+        model = translate((0,0,0))
+    
+        # set up program
+        self.screen_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
+        self.screen_program.bind(vbo)
+        self.screen_program['u_fish'] = [0,0,0]
+        self.screen_program['u_cylinder_radius'] = radius_mm
+        self.screen_program['u_texture'] = black()
+        self.screen_program['u_resolution'] = [self.width, self.height]
+        self.screen_program['u_view'] = self.view
+        self.screen_program['u_model'] = model
+        self.screen_program['u_projection'] = self.projection
+
+    def create_cylinder(self):
+        mesh_data = create_cylinder(
+            rows = 10, 
+            cols = 36, 
+            radius = 3,
+            length = 30 
+        )
+        a_texcoord = cylinder_texcoords(
+            rows = 10, 
+            cols = 36
+        )
+        positions = mesh_data.get_vertices()
+        positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
+        positions = positions.dot(rotate(-90, (1,0,0)))
+        positions = positions[:,:-1]
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('a_texcoord', np.float32, 2)
+        ]
+        vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
+        vertex['a_position'] = positions
+        vertex['a_texcoord'] = a_texcoord
+        
+        # set up buffers
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
+
+        model = translate((0,0,2))
+    
+        # set up program
+        self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = two_colors()
-
-        width, height = self.physical_size
-        gloo.set_viewport(0, 0, width, height)
-        self.cylinder_program['u_resolution'] = [width, height]
-
-        # oblique frustum to match projector offset
-        aspect_ratio = width / float(height)
-        znear = 1
-        zfar = 10_000
-        top = np.tan(np.deg2rad(fovy)) * znear
-        bottom = 0
-        right = top/2 * aspect_ratio
-        left = -right
-        projection = frustum(left, right, bottom, top, znear, zfar)
-        
-        u_view = translate((tx,ty,tz)).dot(rotate(yaw, (0,1,0))).dot(rotate(roll, (0,0,1))).dot(rotate(pitch, (1,0,0)))
-
-        self.cylinder_program['u_view'] = u_view
-        self.cylinder_program['u_model'] = translate((0,0,0))
-        self.cylinder_program['u_projection'] = projection
-        
-        # required for object in the Z axis to hide each other
-        gloo.set_state(depth_test=True) 
-
-        self.show()
+        self.cylinder_program['u_resolution'] = [self.width, self.height]
+        self.cylinder_program['u_view'] = self.view
+        self.cylinder_program['u_model'] = model
+        self.cylinder_program['u_projection'] = self.projection
 
     def on_draw(self, event):
         gloo.clear(color=True, depth=True)
+        self.screen_program.draw('triangles', self.screen_indices)
         self.cylinder_program.draw('triangles', self.indices)
 
     def set_state(self, x, y, z):
         self.cylinder_program['u_fish'] = [x, y, z]
-        print(self.cylinder_program['u_fish'])
         self.update()
 
 class Master(app.Canvas):
