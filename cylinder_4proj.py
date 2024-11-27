@@ -49,6 +49,8 @@ def black(height=1024, width=1024):
 use(gl='gl+')
 
 VERT_SHADER_CYLINDER = """
+#version 140
+  
 // uniforms
 uniform mat4 u_model;
 uniform mat4 u_view;
@@ -59,6 +61,7 @@ uniform float u_cylinder_radius;
 // per-vertex attributes
 attribute vec3 a_position;
 attribute vec2 a_texcoord;
+attribute vec3 a_normal;
 
 // varying
 varying float v_depth;
@@ -121,13 +124,13 @@ void main()
 {
     vec4 vertex_coord = u_model * vec4(a_position,1.0);
     vec3 screen_coord = cylinder_proj(u_fish, vertex_coord.xyz, u_cylinder_radius);
-
+    vec3 normal = mat3(transpose(inverse(u_model))) * a_normal;
+    
     vec4 screen = u_projection * u_view * vec4(screen_coord, 1.0);
     vec4 position = u_projection * u_view * vertex_coord;
     vec4 fish_proj = u_projection * u_view * vec4(u_fish, 1.0);
 
     //v_depth = position.z/position.w; // NDC depth
-
     v_depth = length(position-fish_proj)/length(screen-fish_proj);
     v_texcoord = a_texcoord;
 
@@ -230,22 +233,20 @@ class Slave(app.Canvas):
             radius = (self.radius_mm, self.radius_mm), # remove epsilon ?
             length = self.height_mm 
         )
-        a_texcoord = cylinder_texcoords(
-            rows = 10, 
-            cols = 36
-        )
         positions = mesh_data.get_vertices()
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(-90, (1,0,0)))
         positions = positions[:,:-1]
         vtype = [
             ('a_position', np.float32, 3),
-            ('a_texcoord', np.float32, 2)
+            ('a_texcoord', np.float32, 2),
+            ('a_normal', np.float32, 3)
         ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
-        vertex['a_texcoord'] = a_texcoord
-        
+        vertex['a_texcoord']  = cylinder_texcoords(rows = 10, cols = 36)
+        vertex['a_normal'] = mesh_data.get_vertex_normals()
+
         # set up buffers
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
@@ -271,22 +272,20 @@ class Slave(app.Canvas):
             radius = 3,
             length = 30 
         )
-        a_texcoord = cylinder_texcoords(
-            rows = 10, 
-            cols = 36
-        )
         positions = mesh_data.get_vertices()
         positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
         positions = positions.dot(rotate(-90, (1,0,0)))
         positions = positions[:,:-1]
         vtype = [
             ('a_position', np.float32, 3),
-            ('a_texcoord', np.float32, 2)
+            ('a_texcoord', np.float32, 2),
+            ('a_normal', np.float32, 3)
         ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = positions
-        vertex['a_texcoord'] = a_texcoord
-        
+        vertex['a_texcoord']  = cylinder_texcoords(rows = 10, cols = 36)
+        vertex['a_normal'] = mesh_data.get_vertex_normals()
+
         # set up buffers
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
