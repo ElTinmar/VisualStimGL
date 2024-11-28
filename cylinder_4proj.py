@@ -57,6 +57,8 @@ uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform vec3 u_fish;
 uniform float u_cylinder_radius;
+uniform float u_screen;
+uniform float u_master;
 
 // per-vertex attributes
 attribute vec3 a_position;
@@ -124,14 +126,29 @@ void main()
 {
     vec4 vertex_coord = u_model * vec4(a_position,1.0);
     vec3 screen_coord = cylinder_proj(u_fish, vertex_coord.xyz, u_cylinder_radius);
-    vec3 normal = mat3(transpose(inverse(u_model))) * a_normal;
+    vec3 normal = transpose(inverse(mat3(u_model))) * a_normal;
     
     vec4 screen = u_projection * u_view * vec4(screen_coord, 1.0);
     vec4 position = u_projection * u_view * vertex_coord;
     vec4 fish_proj = u_projection * u_view * vec4(u_fish, 1.0);
 
     //v_depth = position.z/position.w; // NDC depth
-    v_depth = length(position-fish_proj)/length(screen-fish_proj);    
+    //v_depth = length(position-fish_proj)/length(screen-fish_proj);    
+    
+    v_depth = screen.z/screen.w;
+    if (u_screen == 0) {
+        if (dot(vertex_coord.xyz-u_fish, -1*normal)<=0) {
+            if (u_master == 1) {
+                vec4 depth = u_projection * u_view * vec4(0.99*screen_coord, 1.0);
+                v_depth = depth.z/depth.w;
+            }
+            else {
+                vec4 depth = u_projection * u_view * vec4(1.01*screen_coord, 1.0);
+                v_depth = depth.z/depth.w;
+            }
+        }
+    }
+
     v_texcoord = a_texcoord;
 
     gl_Position = screen;
@@ -157,7 +174,7 @@ float edge_blending(vec2 pos, float start, float stop)
 void main()
 {
     gl_FragColor = texture2D(u_texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
-    //gl_FragDepth = v_depth; //TODO fix that
+    gl_FragDepth = v_depth;
 }
 """
 
@@ -228,23 +245,19 @@ class Slave(app.Canvas):
 
     def create_screen(self):
         mesh_data = create_cylinder(
-            rows = 10, 
-            cols = 36, 
+            rows = 100, 
+            cols = 360, 
             radius = (self.radius_mm, self.radius_mm), # remove epsilon ?
             length = self.height_mm 
         )
-        positions = mesh_data.get_vertices()
-        positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
-        positions = positions.dot(rotate(-90, (1,0,0)))
-        positions = positions[:,:-1]
         vtype = [
             ('a_position', np.float32, 3),
             ('a_texcoord', np.float32, 2),
             ('a_normal', np.float32, 3)
         ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
-        vertex['a_position'] = positions
-        vertex['a_texcoord']  = cylinder_texcoords(rows = 10, cols = 36)
+        vertex['a_position'] = mesh_data.get_vertices()
+        vertex['a_texcoord']  = cylinder_texcoords(rows = 100, cols = 360)
         vertex['a_normal'] = mesh_data.get_vertex_normals()
 
         # set up buffers
@@ -252,11 +265,13 @@ class Slave(app.Canvas):
         vbo = gloo.VertexBuffer(vertex)
         self.screen_indices = gloo.IndexBuffer(indices)
 
-        model = translate((0,0,0))
+        model = rotate(-90, (1,0,0))
     
         # set up program
         self.screen_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.screen_program.bind(vbo)
+        self.screen_program['u_screen'] = 1
+        self.screen_program['u_master'] = 0
         self.screen_program['u_fish'] = [0,0,0]
         self.screen_program['u_cylinder_radius'] = radius_mm
         self.screen_program['u_texture'] = black()
@@ -267,23 +282,19 @@ class Slave(app.Canvas):
 
     def create_cylinder(self):
         mesh_data = create_cylinder(
-            rows = 10, 
-            cols = 36, 
+            rows = 100, 
+            cols = 360, 
             radius = 3,
             length = 30 
         )
-        positions = mesh_data.get_vertices()
-        positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
-        positions = positions.dot(rotate(-90, (1,0,0)))
-        positions = positions[:,:-1]
         vtype = [
             ('a_position', np.float32, 3),
             ('a_texcoord', np.float32, 2),
             ('a_normal', np.float32, 3)
         ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
-        vertex['a_position'] = positions
-        vertex['a_texcoord']  = cylinder_texcoords(rows = 10, cols = 36)
+        vertex['a_position'] = mesh_data.get_vertices()
+        vertex['a_texcoord']  = cylinder_texcoords(rows = 100, cols = 360)
         vertex['a_normal'] = mesh_data.get_vertex_normals()
 
         # set up buffers
@@ -291,11 +302,13 @@ class Slave(app.Canvas):
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
 
-        model = translate((0,0,2))
+        model = rotate(-90, (1,0,0)).dot(translate((0,0,2)))
     
         # set up program
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
+        self.cylinder_program['u_screen'] = 0
+        self.cylinder_program['u_master'] = 0
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = two_colors()
@@ -331,18 +344,6 @@ class Master(app.Canvas):
 
         self.slaves = slaves
 
-        # mesh
-        mesh_data = create_cylinder(
-            rows = 10, 
-            cols = 36, 
-            radius = 5, 
-            length = 30
-        )
-        a_texcoord = cylinder_texcoords(
-            rows = 10, 
-            cols = 36
-        )
-
         # rotation and translation gain
         self.step_t = 1
         self.step_t_fast = 2
@@ -368,19 +369,24 @@ class Master(app.Canvas):
 
         # cylinder
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
-        positions = mesh_data.get_vertices()
-        positions = np.hstack((positions, np.ones((mesh_data.n_vertices,1))))
-        positions = positions.dot(rotate(-90, (1,0,0)))
-        positions = positions[:,:-1]
+
+        mesh_data = create_cylinder(
+            rows = 100, 
+            cols = 360, 
+            radius = 3, 
+            length = 30
+        )
+
         vtype = [
             ('a_position', np.float32, 3),
             ('a_texcoord', np.float32, 2),
             ('a_normal', np.float32, 3)
         ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
-        vertex['a_position'] = positions
-        vertex['a_texcoord'] = a_texcoord
+        vertex['a_position'] = mesh_data.get_vertices()
+        vertex['a_texcoord']  = cylinder_texcoords(rows = 100, cols = 360)
         vertex['a_normal'] = mesh_data.get_vertex_normals()
+
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
@@ -391,7 +397,7 @@ class Master(app.Canvas):
 
         # model, view, projection 
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
-        self.cylinder_model = translate((0,0,0))
+        self.cylinder_model = rotate(-90, (1,0,0)).dot(translate((0,0,2)))
 
         width, height = self.physical_size
         gloo.set_viewport(0, 0, width, height)
@@ -399,6 +405,8 @@ class Master(app.Canvas):
 
         projection = perspective(self.fovy, width / float(height), self.z_near, self.z_far)
 
+        self.cylinder_program['u_screen'] = 0
+        self.cylinder_program['u_master'] = 1
         self.cylinder_program['u_view'] = self.view
         self.cylinder_program['u_model'] = self.cylinder_model
         self.cylinder_program['u_projection'] = projection
