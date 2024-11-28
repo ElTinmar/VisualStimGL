@@ -148,7 +148,6 @@ void main()
     }
 
     v_texcoord = a_texcoord;
-
     gl_Position = screen;
 }
 """
