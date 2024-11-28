@@ -131,9 +131,7 @@ void main()
     vec4 screen = u_projection * u_view * vec4(screen_coord, 1.0);
     vec4 position = u_projection * u_view * vertex_coord;
     vec4 fish_proj = u_projection * u_view * vec4(u_fish, 1.0);
-
-    //v_depth = position.z/position.w; // NDC depth
-    //v_depth = length(position-fish_proj)/length(screen-fish_proj);    
+   
     
     v_depth = screen.z/screen.w;
     if (u_screen == 0) {
