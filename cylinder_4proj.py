@@ -338,7 +338,7 @@ class Slave(app.Canvas):
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(faces)
 
-        model = translate((0,0,0))
+        model = translate((0,0.75,0))
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
@@ -480,7 +480,7 @@ class Master(app.Canvas):
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(faces)
 
-        self.cylinder_model = translate((0,0,0))
+        self.cylinder_model = translate((0,0.75,0))
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
