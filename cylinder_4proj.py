@@ -135,15 +135,19 @@ void main()
    
     v_depth = screen.z/screen.w;
     if (u_screen == 0) {
-        if (dot(vertex_coord.xyz-u_fish, -1*normal)<=0) {
+        
+        if ( dot(vertex_coord.xyz-u_fish, normal) <= 0 ) {
+
             if (u_master == 1) {
                 vec4 depth = u_projection * u_view * vec4(0.99*screen_coord, 1.0);
                 v_depth = depth.z/depth.w;
             }
+
             else {
                 vec4 depth = u_projection * u_view * vec4(1.01*screen_coord, 1.0);
                 v_depth = depth.z/depth.w;
             }
+
         }
     }
 
