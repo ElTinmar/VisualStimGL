@@ -221,6 +221,7 @@ class Slave(app.Canvas):
         self.create_projection()
         self.create_screen()
         self.create_cow()
+        #self.create_object()
         self.show()
 
     def set_context(self):
@@ -278,7 +279,7 @@ class Slave(app.Canvas):
         self.screen_program['u_model'] = model
         self.screen_program['u_projection'] = self.projection
 
-    def create_cylinder(self):
+    def create_object(self):
         mesh_data = create_cylinder(
             rows = 100, 
             cols = 360, 
@@ -334,7 +335,7 @@ class Slave(app.Canvas):
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(faces)
 
-        model = translate((0,2,0))
+        model = translate((0,0,0))
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
@@ -398,16 +399,35 @@ class Master(app.Canvas):
         # store last mouse position
         self.last_mouse_pos = None
 
-        # cylinder
-        self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
+        self.set_context()
+        self.create_view()
+        self.create_projection()
+        #self.create_object()
+        self.create_cow()
 
+        # hide cursor
+        self.native.setCursor(Qt.BlankCursor)
+
+        self.show()
+
+    def set_context(self):
+        self.width, self.height = self.physical_size
+        gloo.set_viewport(0, 0, self.width, self.height)
+        gloo.set_state(depth_test=True)  # required for object in the Z axis to hide each other
+
+    def create_view(self):
+        self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
+
+    def create_projection(self):
+        self.projection = perspective(self.fovy, self.width / float(self.height), self.z_near, self.z_far)
+
+    def create_object(self):
         mesh_data = create_cylinder(
             rows = 100, 
             cols = 360, 
-            radius = 3, 
-            length = 30
+            radius = 3,
+            length = 30 
         )
-
         vtype = [
             ('a_position', np.float32, 3),
             ('a_texcoord', np.float32, 2),
@@ -418,37 +438,58 @@ class Master(app.Canvas):
         vertex['a_texcoord']  = cylinder_texcoords(rows = 100, cols = 360)
         vertex['a_normal'] = mesh_data.get_vertex_normals()
 
+        # set up buffers
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
+
+        self.cylinder_model = rotate(-90, (1,0,0)).dot(translate((0,0,0)))
+
+        # set up program
+        self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
-        self.cylinder_program['u_cylinder_radius'] = 33.7
-        self.cylinder_program['u_texture'] = two_colors()
-
-        # model, view, projection 
-        self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
-        self.cylinder_model = rotate(-90, (1,0,0)).dot(translate((0,0,2)))
-
-        width, height = self.physical_size
-        gloo.set_viewport(0, 0, width, height)
-        self.cylinder_program['u_resolution'] = [width, height]
-
-        projection = perspective(self.fovy, width / float(height), self.z_near, self.z_far)
-
         self.cylinder_program['u_screen'] = 0
         self.cylinder_program['u_master'] = 1
+        self.cylinder_program['u_fish'] = [0,0,0]
+        self.cylinder_program['u_cylinder_radius'] = radius_mm
+        self.cylinder_program['u_texture'] = two_colors()
+        self.cylinder_program['u_resolution'] = [self.width, self.height]
         self.cylinder_program['u_view'] = self.view
         self.cylinder_program['u_model'] = self.cylinder_model
-        self.cylinder_program['u_projection'] = projection
-        
-        # required for object in the Z axis to hide each other
-        gloo.set_state(depth_test=True) 
+        self.cylinder_program['u_projection'] = self.projection
 
-        # hide cursor
-        self.native.setCursor(Qt.BlankCursor)
+    def create_cow(self):
+        mesh_path = load_data_file('spot/spot.obj.gz')
+        texture_path = load_data_file('spot/spot.png')
+        vertices, faces, normals, texcoords = read_mesh(mesh_path)
+        texture = np.flipud(imread(texture_path))
 
-        self.show()
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('a_texcoord', np.float32, 2),
+            ('a_normal', np.float32, 3)
+        ]
+        vertex = np.zeros(vertices.shape[0], dtype=vtype)
+        vertex['a_position'] = vertices
+        vertex['a_texcoord']  = texcoords
+        vertex['a_normal'] = normals
+
+        vbo = gloo.VertexBuffer(vertex)
+        self.indices = gloo.IndexBuffer(faces)
+
+        self.cylinder_model = translate((0,0,0))
+
+        self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
+        self.cylinder_program.bind(vbo)
+        self.cylinder_program['u_screen'] = 0
+        self.cylinder_program['u_master'] = 1
+        self.cylinder_program['u_fish'] = [0,0,0]
+        self.cylinder_program['u_cylinder_radius'] = radius_mm
+        self.cylinder_program['u_texture'] = texture
+        self.cylinder_program['u_resolution'] = [self.width, self.height]
+        self.cylinder_program['u_view'] = self.view
+        self.cylinder_program['u_model'] = self.cylinder_model
+        self.cylinder_program['u_projection'] = self.projection
 
     def on_mouse_move(self,event):
 
