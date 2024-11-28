@@ -2,6 +2,7 @@ import sys
 from vispy import gloo, app,  use 
 from vispy.geometry import create_cylinder
 from vispy.util.transforms import perspective, translate, rotate, frustum
+from vispy.io import imread, load_data_file, read_mesh
 import numpy as np
 from PyQt5.QtCore import QPoint, Qt 
 from typing import Tuple
@@ -132,7 +133,6 @@ void main()
     vec4 position = u_projection * u_view * vertex_coord;
     vec4 fish_proj = u_projection * u_view * vec4(u_fish, 1.0);
    
-    
     v_depth = screen.z/screen.w;
     if (u_screen == 0) {
         if (dot(vertex_coord.xyz-u_fish, -1*normal)<=0) {
@@ -220,7 +220,7 @@ class Slave(app.Canvas):
         self.create_view()
         self.create_projection()
         self.create_screen()
-        self.create_cylinder()
+        self.create_cow()
         self.show()
 
     def set_context(self):
@@ -310,6 +310,39 @@ class Slave(app.Canvas):
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = two_colors()
+        self.cylinder_program['u_resolution'] = [self.width, self.height]
+        self.cylinder_program['u_view'] = self.view
+        self.cylinder_program['u_model'] = model
+        self.cylinder_program['u_projection'] = self.projection
+
+    def create_cow(self):
+        mesh_path = load_data_file('spot/spot.obj.gz')
+        texture_path = load_data_file('spot/spot.png')
+        vertices, faces, normals, texcoords = read_mesh(mesh_path)
+        texture = np.flipud(imread(texture_path))
+
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('a_texcoord', np.float32, 2),
+            ('a_normal', np.float32, 3)
+        ]
+        vertex = np.zeros(vertices.shape[0], dtype=vtype)
+        vertex['a_position'] = vertices
+        vertex['a_texcoord']  = texcoords
+        vertex['a_normal'] = normals
+
+        vbo = gloo.VertexBuffer(vertex)
+        self.indices = gloo.IndexBuffer(faces)
+
+        model = translate((0,2,2))
+
+        self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
+        self.cylinder_program.bind(vbo)
+        self.cylinder_program['u_screen'] = 0
+        self.cylinder_program['u_master'] = 0
+        self.cylinder_program['u_fish'] = [0,0,0]
+        self.cylinder_program['u_cylinder_radius'] = radius_mm
+        self.cylinder_program['u_texture'] = texture
         self.cylinder_program['u_resolution'] = [self.width, self.height]
         self.cylinder_program['u_view'] = self.view
         self.cylinder_program['u_model'] = model
