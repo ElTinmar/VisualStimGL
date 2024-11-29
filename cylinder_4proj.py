@@ -58,7 +58,6 @@ uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform vec3 u_fish;
 uniform float u_cylinder_radius;
-uniform float u_screen;
 uniform float u_master;
 
 // per-vertex attributes
@@ -263,7 +262,6 @@ class Slave(app.Canvas):
         # set up program
         self.screen_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.screen_program.bind(vbo)
-        self.screen_program['u_screen'] = 1
         self.screen_program['u_master'] = 0
         self.screen_program['u_fish'] = [0,0,0]
         self.screen_program['u_cylinder_radius'] = radius_mm
@@ -300,7 +298,6 @@ class Slave(app.Canvas):
         # set up program
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_screen'] = 0
         self.cylinder_program['u_master'] = 0
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
@@ -333,7 +330,6 @@ class Slave(app.Canvas):
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_screen'] = 0
         self.cylinder_program['u_master'] = 0
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
@@ -442,7 +438,6 @@ class Master(app.Canvas):
         # set up program
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_screen'] = 0
         self.cylinder_program['u_master'] = 1
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
@@ -475,7 +470,6 @@ class Master(app.Canvas):
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_screen'] = 0
         self.cylinder_program['u_master'] = 1
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
