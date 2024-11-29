@@ -166,7 +166,7 @@ float edge_blending(vec2 pos, float start, float stop)
 void main()
 {
     gl_FragColor = texture2D(u_texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
-    gl_FragDepth = (v_depth+1)/2;
+    gl_FragDepth = v_depth;
 }
 """
 
