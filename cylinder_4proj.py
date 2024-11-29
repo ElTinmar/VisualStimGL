@@ -50,7 +50,7 @@ def black(height=1024, width=1024):
 use(gl='gl+')
 
 VERT_SHADER_CYLINDER = """
-#version 140
+#version 150
   
 // uniforms
 uniform mat4 u_model;
@@ -130,15 +130,12 @@ void main()
     vec4 screen_clip = u_projection * u_view * vec4(screen_world, 1.0);
 
     vec3 viewpoint_world = vec3(inverse(u_view)[3]);
-    float scale = length(vertex_world.xyz - u_fish)/length(screen_world - u_fish);
+    float magnitude = length(vertex_world.xyz - u_fish)/length(screen_world - u_fish);
+    vec3 direction = normalize(viewpoint_world - screen_world);
 
-    vec3 offset_world;
-    if (u_master == 1) {
-        offset_world = screen_world - (viewpoint_world - screen_world) * scale;
-    }
-    else {
-        offset_world = screen_world + normalize(viewpoint_world - screen_world) * (1-scale);
-    }
+    vec3 offset_world = screen_world;
+    if (u_master == 1) {offset_world -= direction * magnitude;}
+    else {offset_world += direction * (1-magnitude);}
     vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
 
     v_depth = offset_clip.z/offset_clip.w;
@@ -368,8 +365,8 @@ class Master(app.Canvas):
         self.slaves = slaves
 
         # rotation and translation gain
-        self.step_t = 1
-        self.step_t_fast = 2
+        self.step_t = 0.25
+        self.step_t_fast = 1
         self.step_r = 0.1
 
         # camera location and rotation
@@ -495,7 +492,7 @@ class Master(app.Canvas):
         dx = x-x0
         dy = y-y0
         self.cam_yaw += self.step_r*dx
-        #self.cam_pitch = max(min(self.cam_pitch + self.step_r*dy, 90), -90)
+        self.cam_pitch = max(min(self.cam_pitch + self.step_r*dy, 90), -90)
 
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
         self.cylinder_program['u_view'] = self.view      
