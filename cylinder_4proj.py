@@ -44,7 +44,7 @@ def two_colors(height=1024, width=1024):
 
 def black(height=1024, width=1024):
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
-    out = np.dstack(((yv < 0), (yv < 0), (yv>=0)))
+    out = np.dstack(((yv < 0), (yv < 0), (yv<0)))
     return 255*out.astype(np.uint8)
 
 use(gl='gl+')
