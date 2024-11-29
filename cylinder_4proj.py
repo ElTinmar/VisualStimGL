@@ -130,6 +130,7 @@ void main()
     vec4 screen = u_projection * u_view * vec4(screen_coord, 1.0);
 
     vec3 viewpoint = u_view[2].xyz;
+
     if (u_master == 1) {
         vec3 offset = screen_coord - (viewpoint-screen_coord) * length(vertex_coord.xyz-u_fish)/length(screen_coord-u_fish);
         vec4 depth = u_projection * u_view * vec4(offset, 1.0);
