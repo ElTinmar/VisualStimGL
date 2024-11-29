@@ -124,26 +124,26 @@ vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
 
 void main()
 {
-    vec4 vertex_coord = u_model * vec4(a_position,1.0);
-    vec3 screen_coord = cylinder_proj(u_fish, vertex_coord.xyz, u_cylinder_radius);
-    //vec3 normal = transpose(inverse(mat3(u_model))) * a_normal;
-    vec4 screen = u_projection * u_view * vec4(screen_coord, 1.0);
+    vec4 vertex_world = u_model * vec4(a_position, 1.0);
+    vec3 screen_world = cylinder_proj(u_fish, vertex_world.xyz, u_cylinder_radius);
+    //vec3 normal_world = transpose(inverse(mat3(u_model))) * a_normal;
+    vec4 screen_clip = u_projection * u_view * vec4(screen_world, 1.0);
 
-    vec3 viewpoint = inverse(u_view)[3].xyz;
+    vec3 viewpoint_world = vec3(inverse(u_view)[3]);
+    float scale = length(vertex_world.xyz - u_fish)/length(screen_world - u_fish);
 
+    vec3 offset_world;
     if (u_master == 1) {
-        vec3 offset = screen_coord - (viewpoint-screen_coord) * length(vertex_coord.xyz-u_fish)/length(screen_coord-u_fish);
-        vec4 depth = u_projection * u_view * vec4(offset, 1.0);
-        v_depth = depth.z/depth.w;
+        offset_world = screen_world - (viewpoint_world - screen_world) * scale;
     }
     else {
-        vec3 offset = screen_coord + (viewpoint-screen_coord) * (1-length(vertex_coord.xyz-u_fish)/length(screen_coord-u_fish)); // screen
-        vec4 depth = u_projection * u_view * vec4(offset, 1.0);
-        v_depth = depth.z/depth.w;
+        offset_world = screen_world + normalize(viewpoint_world - screen_world) * (1-scale);
     }
+    vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
+    v_depth = offset_clip.z/offset_clip.w;
 
     v_texcoord = a_texcoord;
-    gl_Position = screen;
+    gl_Position = screen_clip;
 }
 """
 
@@ -166,7 +166,7 @@ float edge_blending(vec2 pos, float start, float stop)
 void main()
 {
     gl_FragColor = texture2D(u_texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
-    gl_FragDepth = v_depth;
+    gl_FragDepth = (v_depth+1)/2;
 }
 """
 
