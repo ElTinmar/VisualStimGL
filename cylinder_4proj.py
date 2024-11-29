@@ -140,8 +140,8 @@ void main()
         offset_world = screen_world + normalize(viewpoint_world - screen_world) * (1-scale);
     }
     vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
-    v_depth = offset_clip.z/offset_clip.w;
 
+    v_depth = offset_clip.z/offset_clip.w;
     v_texcoord = a_texcoord;
     gl_Position = screen_clip;
 }
