@@ -138,9 +138,9 @@ void main()
     else {offset_world += direction * (1-magnitude);}
     vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
 
-    v_depth = offset_clip.z/offset_clip.w;
+    //v_depth = offset_clip.z/offset_clip.w;
     v_texcoord = a_texcoord;
-    gl_Position = screen_clip;
+    gl_Position = offset_clip;
 }
 """
 
@@ -163,7 +163,7 @@ float edge_blending(vec2 pos, float start, float stop)
 void main()
 {
     gl_FragColor = texture2D(u_texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
-    gl_FragDepth = v_depth;
+    //gl_FragDepth = v_depth;
 }
 """
 
