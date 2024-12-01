@@ -133,8 +133,7 @@ void main()
     vec3 direction = normalize(screen_world-viewpoint_world);
     float orientation = sign(dot(direction, vertex_world.xyz - u_fish));
 
-    vec3 offset_world = viewpoint_world;    
-    offset_world += orientation * direction * magnitude;
+    vec3 offset_world = viewpoint_world + orientation * direction * magnitude;
     vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
 
     v_depth = offset_clip.z/offset_clip.w;
