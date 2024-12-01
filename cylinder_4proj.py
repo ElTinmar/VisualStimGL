@@ -44,7 +44,7 @@ def two_colors(height=1024, width=1024):
 
 def black(height=1024, width=1024):
     xv, yv = np.meshgrid(range(width), range(height), indexing='xy')
-    out = np.dstack(((yv < 0), (yv < 0), (yv<0)))
+    out = np.dstack(((yv < 0), (yv < 0), (yv>=0)))
     return 255*out.astype(np.uint8)
 
 use(gl='gl+')
@@ -58,7 +58,6 @@ uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform vec3 u_fish;
 uniform float u_cylinder_radius;
-uniform float u_master;
 
 // per-vertex attributes
 attribute vec3 a_position;
@@ -132,15 +131,15 @@ void main()
     vec3 viewpoint_world = vec3(inverse(u_view)[3]);
     float magnitude = length(vertex_world.xyz - u_fish)/length(screen_world - u_fish);
     vec3 direction = normalize(screen_world-viewpoint_world);
+    float orientation = sign(dot(direction, vertex_world.xyz - u_fish));
 
-    vec3 offset_world = viewpoint_world;
-    if (u_master == 1) {offset_world -= direction * magnitude;}
-    else {offset_world += direction * (1-magnitude);}
+    vec3 offset_world = viewpoint_world;    
+    offset_world += orientation * direction * magnitude;
     vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
 
-    //v_depth = offset_clip.z/offset_clip.w;
+    v_depth = offset_clip.z/offset_clip.w;
     v_texcoord = a_texcoord;
-    gl_Position = offset_clip;
+    gl_Position = screen_clip;
 }
 """
 
@@ -163,7 +162,7 @@ float edge_blending(vec2 pos, float start, float stop)
 void main()
 {
     gl_FragColor = texture2D(u_texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
-    //gl_FragDepth = v_depth;
+    gl_FragDepth = v_depth;
 }
 """
 
@@ -225,7 +224,7 @@ class Slave(app.Canvas):
 
     def create_projection(self):
         aspect_ratio = self.width / float(self.height)
-        znear = 1
+        znear = 0.001
         zfar = 10_000
         top = np.tan(np.deg2rad(self.fovy)) * znear
         bottom = 0
@@ -260,7 +259,6 @@ class Slave(app.Canvas):
         # set up program
         self.screen_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.screen_program.bind(vbo)
-        self.screen_program['u_master'] = 0
         self.screen_program['u_fish'] = [0,0,0]
         self.screen_program['u_cylinder_radius'] = radius_mm
         self.screen_program['u_texture'] = black()
@@ -296,7 +294,6 @@ class Slave(app.Canvas):
         # set up program
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_master'] = 0
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = two_colors()
@@ -328,7 +325,6 @@ class Slave(app.Canvas):
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_master'] = 0
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = texture
@@ -380,7 +376,7 @@ class Master(app.Canvas):
         # You can get rid of gimbal lock with quaternions
 
         # perspective frustum
-        self.z_near = 1
+        self.z_near = 0.001
         self.z_far = 10_000
         self.fovy = 90
 
@@ -436,7 +432,6 @@ class Master(app.Canvas):
         # set up program
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_master'] = 1
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = two_colors()
@@ -468,7 +463,6 @@ class Master(app.Canvas):
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_master'] = 1
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = texture
