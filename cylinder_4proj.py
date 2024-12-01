@@ -131,9 +131,9 @@ void main()
 
     vec3 viewpoint_world = vec3(inverse(u_view)[3]);
     float magnitude = length(vertex_world.xyz - u_fish)/length(screen_world - u_fish);
-    vec3 direction = normalize(viewpoint_world - screen_world);
+    vec3 direction = normalize(screen_world-viewpoint_world);
 
-    vec3 offset_world = screen_world;
+    vec3 offset_world = viewpoint_world;
     if (u_master == 1) {offset_world -= direction * magnitude;}
     else {offset_world += direction * (1-magnitude);}
     vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
