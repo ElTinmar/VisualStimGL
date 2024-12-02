@@ -58,6 +58,7 @@ uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform vec3 u_fish;
 uniform float u_cylinder_radius;
+uniform float u_master;
 
 // per-vertex attributes
 attribute vec3 a_position;
@@ -133,7 +134,9 @@ void main()
     vec3 direction = normalize(screen_world-viewpoint_world);
     float orientation = sign(dot(direction.xz, screen_world.xz));
 
-    vec3 offset_world = viewpoint_world - orientation * direction * magnitude;
+    vec3 offset_world = viewpoint_world;
+    if (u_master == 1) {offset_world += orientation * direction * magnitude;}
+    else {offset_world -= orientation * direction * magnitude;}
     vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
 
     v_depth = offset_clip.z/offset_clip.w;
@@ -258,6 +261,7 @@ class Slave(app.Canvas):
         # set up program
         self.screen_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.screen_program.bind(vbo)
+        self.screen_program['u_master'] = 0
         self.screen_program['u_fish'] = [0,0,0]
         self.screen_program['u_cylinder_radius'] = radius_mm
         self.screen_program['u_texture'] = black()
@@ -293,6 +297,7 @@ class Slave(app.Canvas):
         # set up program
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
+        self.cylinder_program['u_master'] = 0
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = two_colors()
@@ -324,6 +329,7 @@ class Slave(app.Canvas):
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
+        self.cylinder_program['u_master'] = 0
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = texture
@@ -431,6 +437,7 @@ class Master(app.Canvas):
         # set up program
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
+        self.cylinder_program['u_master'] = 1
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = two_colors()
@@ -462,6 +469,7 @@ class Master(app.Canvas):
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
+        self.cylinder_program['u_master'] = 1
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = texture
