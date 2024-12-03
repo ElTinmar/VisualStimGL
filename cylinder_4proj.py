@@ -250,7 +250,6 @@ class Slave(app.Canvas):
         self.set_context()
         self.create_view()
         self.create_projection()
-        #self.create_screen()
         self.create_cow()
         #self.create_object()
         self.show()
@@ -272,42 +271,6 @@ class Slave(app.Canvas):
         right = top/2 * aspect_ratio
         left = -right
         self.projection = frustum(left, right, bottom, top, znear, zfar)
-
-    def create_screen(self):
-        mesh_data = create_cylinder(
-            rows = 100, 
-            cols = 360, 
-            radius = (self.radius_mm, self.radius_mm), # remove epsilon ?
-            length = self.height_mm 
-        )
-        vtype = [
-            ('a_position', np.float32, 3),
-            ('a_texcoord', np.float32, 2),
-            ('a_normal', np.float32, 3)
-        ]
-        vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
-        vertex['a_position'] = mesh_data.get_vertices()
-        vertex['a_texcoord']  = cylinder_texcoords(rows = 100, cols = 360)
-        vertex['a_normal'] = mesh_data.get_vertex_normals()
-
-        # set up buffers
-        indices = mesh_data.get_faces()
-        vbo = gloo.VertexBuffer(vertex)
-        self.screen_indices = gloo.IndexBuffer(indices)
-
-        model = rotate(-90, (1,0,0))
-    
-        # set up program
-        self.screen_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
-        self.screen_program.bind(vbo)
-        self.screen_program['u_master'] = 0
-        self.screen_program['u_fish'] = [0,0,0]
-        self.screen_program['u_cylinder_radius'] = radius_mm
-        self.screen_program['u_texture'] = black()
-        self.screen_program['u_resolution'] = [self.width, self.height]
-        self.screen_program['u_view'] = self.view
-        self.screen_program['u_model'] = model
-        self.screen_program['u_projection'] = self.projection
 
     def create_object(self):
         mesh_data = create_cylinder(
@@ -379,7 +342,6 @@ class Slave(app.Canvas):
 
     def on_draw(self, event):
         gloo.clear(color=True, depth=True)
-        #self.screen_program.draw('triangles', self.screen_indices)
         self.cylinder_program.draw('triangles', self.indices)
 
     def set_state(self, x, y, z):
