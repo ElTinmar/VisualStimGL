@@ -68,6 +68,8 @@ attribute vec3 a_normal;
 // varying
 varying float v_depth;
 varying vec2 v_texcoord;
+varying vec3 v_normal;
+varying vec3 v_view_position;
 
 // TODO check what happens when fish_pos = vertex_pos
 vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) { 
@@ -126,7 +128,7 @@ void main()
 {
     vec4 vertex_world = u_model * vec4(a_position, 1.0);
     vec3 screen_world = cylinder_proj(u_fish, vertex_world.xyz, u_cylinder_radius);
-    //vec3 normal_world = transpose(inverse(mat3(u_model))) * a_normal;
+    vec3 normal_world = transpose(inverse(mat3(u_model))) * a_normal;
     vec4 screen_clip = u_projection * u_view * vec4(screen_world, 1.0);
 
     vec3 viewpoint_world = vec3(inverse(u_view)[3]);
@@ -141,6 +143,8 @@ void main()
 
     v_depth = offset_clip.z/offset_clip.w;
     v_texcoord = a_texcoord;
+    v_normal = normal_world;
+    v_view_position = viewpoint_world;
     gl_Position = screen_clip;
 }
 """
@@ -153,17 +157,52 @@ FRAG_SHADER_CYLINDER = """
 uniform sampler2D u_texture;
 uniform vec2 u_resolution;
 
+varying vec3 v_normal;
 varying vec2 v_texcoord;
 varying float v_depth;
+varying vec3 v_view_position;
 
-float edge_blending(vec2 pos, float start, float stop) 
+vec4 Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 view_position) {
+
+    vec3 light_position = vec3(0,10000,0);
+    vec3 light_color = vec3(1.0, 1.0, 1.0);
+
+    // ambient
+    float light_ambient = 0.6;
+    vec3 ambient = light_ambient * light_color;
+
+    // diffuse
+    vec3 norm = normalize(normal); 
+    vec3 light_direction = normalize(light_position - fragment_position);  
+    vec3 diffuse = max(dot(norm, light_direction), 0.0) * light_color;
+
+    // specular
+    float light_specular = 0.1;
+    float light_shininess = 32;
+
+    vec3 view_direction = normalize(view_position - fragment_position);
+    vec3 reflect_direction = reflect(-light_direction, norm);  
+    float spec = pow(max(dot(view_direction, reflect_direction), 0.0), light_shininess);
+    vec3 specular = light_specular * spec * light_color;  
+
+
+    // Phong shading
+    vec3 result = (ambient + diffuse + specular) * object_color;
+    return vec4(result, 1.0);
+}
+
+vec4 edge_blending(vec3 object_color, vec2 pos, float start, float stop) 
 {
-    return smoothstep(start, stop, pos.x) * smoothstep(start, stop, 1.0 - pos.x);
+    vec3 result = smoothstep(start, stop, pos.x) * smoothstep(start, stop, 1.0 - pos.x) * object_color;
+    return vec4(result, 1.0);
 }
 
 void main()
 {
-    gl_FragColor = texture2D(u_texture, v_texcoord) * edge_blending(gl_FragCoord.xy/u_resolution, 0.125, 0.35);
+    vec4 object_color = texture2D(u_texture, v_texcoord);
+    vec4 phong_shading = Phong(vec3(object_color), v_normal, vec3(gl_FragCoord), v_view_position);
+    vec4 final = edge_blending(vec3(phong_shading), gl_FragCoord.xy/u_resolution, 0.125, 0.35);
+    gl_FragColor = final;
     gl_FragDepth = v_depth;
 }
 """
@@ -211,7 +250,7 @@ class Slave(app.Canvas):
         self.set_context()
         self.create_view()
         self.create_projection()
-        self.create_screen()
+        #self.create_screen()
         self.create_cow()
         #self.create_object()
         self.show()
@@ -325,7 +364,7 @@ class Slave(app.Canvas):
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(faces)
 
-        model = translate((0,0.75,0))
+        model = translate((0,0,0))
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
@@ -340,7 +379,7 @@ class Slave(app.Canvas):
 
     def on_draw(self, event):
         gloo.clear(color=True, depth=True)
-        self.screen_program.draw('triangles', self.screen_indices)
+        #self.screen_program.draw('triangles', self.screen_indices)
         self.cylinder_program.draw('triangles', self.indices)
 
     def set_state(self, x, y, z):
@@ -466,7 +505,7 @@ class Master(app.Canvas):
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(faces)
 
-        self.cylinder_model = translate((0,0.75,0))
+        self.cylinder_model = translate((0,0,0))
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
