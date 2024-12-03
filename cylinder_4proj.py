@@ -307,10 +307,10 @@ class Slave(app.Canvas):
         self.cylinder_program['u_projection'] = self.projection
 
     def create_cow(self):
-        mesh_path = load_data_file('spot/spot.obj.gz')
-        texture_path = load_data_file('spot/spot.png')
-        vertices, faces, normals, texcoords = read_mesh(mesh_path)
-        texture = np.flipud(imread(texture_path))
+        #mesh_path = load_data_file('spot/spot.obj.gz')
+        #texture_path = load_data_file('spot/spot.png')
+        vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
+        texture = np.flipud(imread('checker.png'))
 
         vtype = [
             ('a_position', np.float32, 3),
@@ -447,10 +447,11 @@ class Master(app.Canvas):
         self.cylinder_program['u_projection'] = self.projection
 
     def create_cow(self):
-        mesh_path = load_data_file('spot/spot.obj.gz')
-        texture_path = load_data_file('spot/spot.png')
-        vertices, faces, normals, texcoords = read_mesh(mesh_path)
-        texture = np.flipud(imread(texture_path))
+        #mesh_path = load_data_file('spot/spot.obj.gz')
+        #texture_path = load_data_file('spot/spot.png')
+        vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
+        texture = np.flipud(imread('checker.png'))
+
 
         vtype = [
             ('a_position', np.float32, 3),
