@@ -68,10 +68,9 @@ attribute vec3 a_normal;
 // varying
 varying float v_depth;
 varying vec2 v_texcoord;
-varying vec3 v_normal;
+varying vec3 v_normal_world;
 varying vec3 v_view_position;
 varying vec4 v_world_position;
-varying vec3 v_fish_position;
 
 // TODO check what happens when fish_pos = vertex_pos
 vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) { 
@@ -145,10 +144,9 @@ void main()
 
     v_depth = offset_clip.z/offset_clip.w;
     v_texcoord = a_texcoord;
-    v_normal = normal_world;
+    v_normal_world = normal_world;
     v_view_position = viewpoint_world;
     v_world_position = vertex_world;
-    v_fish_position = u_fish;
     gl_Position = screen_clip;
 }
 """
@@ -160,36 +158,38 @@ void main()
 FRAG_SHADER_CYLINDER = """
 uniform sampler2D u_texture;
 uniform vec2 u_resolution;
+uniform vec3 u_fish;
 
-varying vec3 v_normal;
+varying vec3 v_normal_world;
 varying vec2 v_texcoord;
 varying float v_depth;
 varying vec3 v_view_position;
 varying vec4 v_world_position;
-varying vec3 v_fish_position;
 
 vec4 Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 view_position) {
 
     vec3 light_position = vec3(0,1000,0);
-    vec3 light_color = vec3(1.0, 1.0, 1.0);
+    vec3 ambient_color = vec3(1.0, 1.0, 1.0);
+    vec3 diffuse_color = vec3(1.0, 1.0, 1.0);
+    vec3 specular_color = vec3(1.0, 1.0, 1.0);
 
     // ambient
     float light_ambient = 0.5;
-    vec3 ambient = light_ambient * light_color;
+    vec3 ambient = light_ambient * ambient_color;
 
     // diffuse
     vec3 norm = normalize(normal); 
     vec3 light_direction = normalize(light_position - fragment_position);  
-    vec3 diffuse = max(dot(norm, light_direction), 0.0) * light_color;
+    vec3 diffuse = max(dot(norm, light_direction), 0.0) * diffuse_color;
 
     // specular
-    float light_specular = 1.0;
+    float light_specular = 40.0;
     float light_shininess = 32;
 
     vec3 view_direction = normalize(view_position - fragment_position);
     vec3 reflect_direction = reflect(-light_direction, norm);  
     float spec = pow(max(dot(view_direction, reflect_direction), 0.0), light_shininess);
-    vec3 specular = light_specular * spec * light_color;  
+    vec3 specular = light_specular * spec * specular_color;  
 
     // Phong shading
     vec3 result = (ambient + diffuse + specular) * object_color;
@@ -205,7 +205,7 @@ vec4 edge_blending(vec3 object_color, vec2 pos, float start, float stop)
 void main()
 {
     vec4 object_color = texture2D(u_texture, v_texcoord);
-    vec4 phong_shading = Phong(vec3(object_color), v_normal, vec3(v_world_position), v_fish_position);
+    vec4 phong_shading = Phong(vec3(object_color), v_normal_world, vec3(v_world_position), u_fish);
     vec4 final = edge_blending(vec3(phong_shading), gl_FragCoord.xy/u_resolution, 0.125, 0.35);
     gl_FragColor = final;
     gl_FragDepth = v_depth;
