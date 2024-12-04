@@ -166,9 +166,9 @@ varying float v_depth;
 varying vec3 v_view_position;
 varying vec4 v_world_position;
 
-vec4 Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 view_position) {
+vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 view_position) {
 
-    vec3 light_position = vec3(0,1000,0);
+    vec3 light_position = vec3(1000,0,0);
     vec3 ambient_color = vec3(1.0, 1.0, 1.0);
     vec3 diffuse_color = vec3(1.0, 1.0, 1.0);
     vec3 specular_color = vec3(1.0, 1.0, 1.0);
@@ -180,18 +180,20 @@ vec4 Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 view_pos
     // diffuse
     vec3 norm = normalize(normal); 
     vec3 light_direction = normalize(light_position - fragment_position);  
-    vec3 diffuse = max(dot(norm, light_direction), 0.0) * diffuse_color;
+    float lambertian = max(dot(norm, light_direction), 0.0); 
+    vec3 diffuse = lambertian * diffuse_color;
 
     // specular
     float light_specular = 40.0;
     float light_shininess = 32;
 
     vec3 view_direction = normalize(view_position - fragment_position);
-    vec3 reflect_direction = reflect(-light_direction, norm);  
-    float spec = pow(max(dot(view_direction, reflect_direction), 0.0), light_shininess);
+    vec3 half_vector = normalize(view_direction + light_direction);
+    float specular_angle = max(dot(half_vector, normal), 0.0);
+    float spec = pow(specular_angle, light_shininess);
     vec3 specular = light_specular * spec * specular_color;  
 
-    // Phong shading
+    // Blinn_Phong shading
     vec3 result = (ambient + diffuse + specular) * object_color;
     return vec4(result, 1.0);
 }
@@ -205,7 +207,7 @@ vec4 edge_blending(vec3 object_color, vec2 pos, float start, float stop)
 void main()
 {
     vec4 object_color = texture2D(u_texture, v_texcoord);
-    vec4 phong_shading = Phong(vec3(object_color), v_normal_world, vec3(v_world_position), u_fish);
+    vec4 phong_shading = Blinn_Phong(vec3(object_color), v_normal_world, vec3(v_world_position), u_fish);
     vec4 final = edge_blending(vec3(phong_shading), gl_FragCoord.xy/u_resolution, 0.125, 0.35);
     gl_FragColor = final;
     gl_FragDepth = v_depth;
