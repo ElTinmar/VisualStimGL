@@ -206,9 +206,22 @@ vec4 edge_blending(vec3 object_color, vec2 pos, float start, float stop)
 
 void main()
 {
+    float gamma = 2.2;
+
+    // texture
     vec4 object_color = texture2D(u_texture, v_texcoord);
+
+    // lighting
     vec4 phong_shading = Blinn_Phong(vec3(object_color), v_normal_world, vec3(v_world_position), u_fish);
-    vec4 final = edge_blending(vec3(phong_shading), gl_FragCoord.xy/u_resolution, 0.125, 0.35);
+
+    // gamma correction    
+    vec4 gamma_corrected = phong_shading;
+    gamma_corrected.rgb = pow(gamma_corrected.rgb, vec3(1.0/gamma));
+    
+    // blend projector edges together
+    vec4 final = edge_blending(vec3(gamma_corrected), gl_FragCoord.xy/u_resolution, 0.125, 0.35);
+    
+    // output
     gl_FragColor = final;
     gl_FragDepth = v_depth;
 }
