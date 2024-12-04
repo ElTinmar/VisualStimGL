@@ -402,7 +402,7 @@ class Slave(app.Canvas):
 
         light_position = [0,1000,0]
         light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_view = lookAt(light_position, [0,0,0])
+        light_view = lookAt(light_position, [0,0,0], [1,0,0])
         lightspace = light_projection.dot(light_view)
 
         vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
@@ -576,7 +576,7 @@ class Master(app.Canvas):
 
         light_position = [0,1000,0]
         light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_view = lookAt(light_position, [0,0,0])
+        light_view = lookAt(light_position, [0,0,0], [1,0,0])
         lightspace = light_projection.dot(light_view)
 
         # load mesh
