@@ -56,6 +56,8 @@ VERT_SHADER_CYLINDER = """
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
+uniform mat4 u_lightspace;
+
 uniform vec3 u_fish;
 uniform float u_cylinder_radius;
 uniform float u_master;
@@ -71,6 +73,7 @@ varying vec2 v_texcoord;
 varying vec3 v_normal_world;
 varying vec3 v_view_position;
 varying vec4 v_world_position;
+varying vec4 v_lightspace_position;
 
 // TODO check what happens when fish_pos = vertex_pos
 vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) { 
@@ -115,12 +118,8 @@ vec3 cylinder_proj(vec3 fish_pos, vec3 vertex_pos, float cylinder_radius) {
     vec3 sol;
     float dir = dot(sol0-fish_pos, vertex_pos-fish_pos);
     //dir >= 0.0f ? sol = sol0 : sol = sol1; 
-    if (dir > 0.0f) {
-        sol = sol0;
-    }
-    else {
-        sol = sol1;
-    }
+    if (dir > 0.0f) {sol = sol0;}
+    else {sol = sol1;}
 
     return sol;
 } 
@@ -147,6 +146,7 @@ void main()
     v_normal_world = normal_world;
     v_view_position = viewpoint_world;
     v_world_position = vertex_world;
+    v_lightspace_position = u_lightspace * vertex_world;
     gl_Position = screen_clip;
 }
 """
@@ -167,8 +167,24 @@ varying vec2 v_texcoord;
 varying float v_depth;
 varying vec3 v_view_position;
 varying vec4 v_world_position;
+varying vec4 v_lightspace_position;
 
-vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 view_position, vec3 light_position) {
+float get_shadow(vec4 lightspace_position)
+{
+    float bias = 0.005;
+
+    vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
+    position_ndc = position_ndc * 0.5 + 0.5;
+    float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
+    float current_depth = position_ndc.z;
+    float shadow = 0;
+    if ((current_depth - bias) > closest_depth) {shadow = 1.0;} 
+    return shadow;
+}
+
+vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 view_position, vec3 light_position, vec4 lightspace_position) {
+
+    float enable_shadows = 1.0;
 
     vec3 ambient_color = vec3(1.0, 1.0, 1.0);
     vec3 diffuse_color = vec3(1.0, 1.0, 1.0);
@@ -195,7 +211,14 @@ vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 vi
     vec3 specular = light_specular * spec * specular_color;  
 
     // Blinn_Phong shading
-    vec3 result = (ambient + diffuse + specular) * object_color;
+    vec3 result;
+    if (enable_shadows == 1.0) {
+        float shadow = get_shadow(lightspace_position);
+        result = (ambient + (1.0 - shadow) * (diffuse + specular)) * object_color;
+    }
+    else {
+        result = (ambient + diffuse + specular) * object_color;
+    }
     return vec4(result, 1.0);
 }
 
@@ -213,7 +236,7 @@ void main()
     vec4 object_color = texture2D(u_texture, v_texcoord);
 
     // lighting
-    vec4 phong_shading = Blinn_Phong(vec3(object_color), v_normal_world, vec3(v_world_position), u_fish, u_light_position);
+    vec4 phong_shading = Blinn_Phong(vec3(object_color), v_normal_world, vec3(v_world_position), u_fish, u_light_position, v_lightspace_position);
 
     // gamma correction    
     vec4 gamma_corrected = phong_shading;
@@ -228,7 +251,21 @@ void main()
 }
 """
 
-FRAG_SHADER_SHADOW="""
+VERTEX_SHADER_SHADOW="""
+uniform mat4 u_model;
+uniform mat4 u_lightspace;
+
+attribute vec3 a_position;
+attribute vec2 a_texcoord;
+attribute vec3 a_normal;
+
+void main()
+{
+    gl_Position = u_lightspace * u_model * vec4(a_position, 1.0);
+}
+"""
+
+FRAGMENT_SHADER_SHADOW="""
 void main()
 {
 }
@@ -343,6 +380,11 @@ class Slave(app.Canvas):
 
         model = translate((0,0,0))
 
+        light_position = [0,1000,0]
+        light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
+        light_view = translate(light_position).dot(rotate(90, (1, 0, 0))) # look down at the center of the scene
+        lightspace = light_projection.dot(light_view)
+
         vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
         texture = np.flipud(imread('checker.png'))
 
@@ -360,19 +402,20 @@ class Slave(app.Canvas):
         self.indices = gloo.IndexBuffer(faces)
 
         # set up shadow map buffer
-        self.shadow_map_texture = gloo.Texture2D(((self.height, self.width) + (3,)))
-        self.fbo = gloo.FrameBuffer(self.shadow_map_texture, gloo.RenderBuffer((self.height, self.width)))
+        self.shadow_map_texture = gloo.Texture2D(
+            data = ((self.height, self.width)), 
+            format = 'depth_component',
+            interpolation = 'nearest',
+            wrapping = 'repeat',
+            internalformat = 'depth_component'
+        )
+        # attach texture as depth buffer
+        self.fbo = gloo.FrameBuffer(depth = self.shadow_map_texture)
 
-        self.shadowmap_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_SHADOW)
-        self.shadowmap_program.bind(vbo)
-        self.shadowmap_program['u_master'] = 0
-        self.shadowmap_program['u_fish'] = [0,0,0]
-        self.shadowmap_program['u_cylinder_radius'] = radius_mm
-        self.shadowmap_program['u_texture'] = two_colors()
-        self.shadowmap_program['u_resolution'] = [self.width, self.height]
-        self.shadowmap_program['u_view'] = self.view
+        self.shadowmap_program = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
+        self.shadowmap_program.bind(vbo)        
         self.shadowmap_program['u_model'] = model
-        self.shadowmap_program['u_projection'] = self.projection
+        self.shadowmap_program['u_lightspace'] = lightspace
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
@@ -384,15 +427,17 @@ class Slave(app.Canvas):
         self.cylinder_program['u_view'] = self.view
         self.cylinder_program['u_model'] = model
         self.cylinder_program['u_projection'] = self.projection
-        self.cylinder_program['u_light_position'] = [0,1000,0]
-        # self.cylinder_program['u_shadow_map_texture'] = self.shadow_map_texture
+        self.cylinder_program['u_light_position'] = light_position
+        self.cylinder_program['u_lightspace'] = lightspace
+        self.cylinder_program['u_shadow_map_texture'] = self.shadow_map_texture
 
     def on_draw(self, event):
-        # # draw to the fbo 
-        # with self.fbo: 
-        #     gloo.clear(color=True, depth=True)
-        #     gloo.set_viewport(0, 0, self.width, self.height)
-        #     self.shadowmap_program.draw('triangles', self.indices)
+        # draw to the fbo 
+        with self.fbo: 
+            gloo.clear(color=True, depth=True)
+            gloo.set_viewport(0, 0, self.width, self.height)
+            gloo.set_cull_face('front')
+            self.shadowmap_program.draw('triangles', self.indices)
             
         # draw to screen
         gloo.clear(color=True, depth=True)
@@ -505,10 +550,17 @@ class Master(app.Canvas):
     def create_cow(self):
         #mesh_path = load_data_file('spot/spot.obj.gz')
         #texture_path = load_data_file('spot/spot.png')
+
+        # model matrix
+        self.cylinder_model = translate((0,0,0))
+
+        light_position = [0,1000,0]
+        light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
+        light_view = translate(light_position).dot(rotate(90, (1, 0, 0))) # look down at the center of the scene
+        lightspace = light_projection.dot(light_view)
+
+        # load mesh
         vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
-        texture = np.flipud(imread('checker.png'))
-
-
         vtype = [
             ('a_position', np.float32, 3),
             ('a_texcoord', np.float32, 2),
@@ -518,11 +570,28 @@ class Master(app.Canvas):
         vertex['a_position'] = vertices
         vertex['a_texcoord']  = texcoords
         vertex['a_normal'] = normals
-
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(faces)
 
-        self.cylinder_model = translate((0,0,0))
+        # load texture
+        texture = np.flipud(imread('checker.png'))
+
+        # set up shadow map buffer
+        self.shadow_map_texture = gloo.Texture2D(
+            data = ((self.height, self.width)), 
+            format = 'depth_component',
+            interpolation = 'nearest',
+            wrapping = 'repeat',
+            internalformat = 'depth_component'
+        )
+        # attach texture as depth buffer
+        self.fbo = gloo.FrameBuffer(depth = self.shadow_map_texture)
+
+        # create shaders
+        self.shadowmap_program = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
+        self.shadowmap_program.bind(vbo)
+        self.shadowmap_program['u_model'] = self.cylinder_model
+        self.shadowmap_program['u_lightspace'] = lightspace
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
@@ -534,7 +603,9 @@ class Master(app.Canvas):
         self.cylinder_program['u_view'] = self.view
         self.cylinder_program['u_model'] = self.cylinder_model
         self.cylinder_program['u_projection'] = self.projection
+        self.cylinder_program['u_lightspace'] = lightspace
         self.cylinder_program['u_light_position'] = [0,1000,0]
+        self.cylinder_program['u_shadow_map_texture'] = self.shadow_map_texture
 
     def on_mouse_move(self,event):
 
@@ -608,6 +679,13 @@ class Master(app.Canvas):
         gloo.set_viewport(0, 0, width, height)
 
     def on_draw(self, event):
+        # draw to the fbo 
+        with self.fbo: 
+            gloo.clear(color=True, depth=True)
+            gloo.set_viewport(0, 0, self.width, self.height)
+            self.shadowmap_program.draw('triangles', self.indices)
+            
+        # draw to screen
         gloo.clear(color=True, depth=True)
         self.cylinder_program.draw('triangles', self.indices)
         self.update()
