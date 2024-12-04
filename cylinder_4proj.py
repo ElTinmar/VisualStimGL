@@ -171,7 +171,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position)
 {
-    float bias = 0.005;
+    float bias = 0;
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -382,7 +382,7 @@ class Slave(app.Canvas):
 
         light_position = [0,1000,0]
         light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_view = translate(light_position).dot(rotate(90, (1, 0, 0))) # look down at the center of the scene
+        light_view = translate(light_position).dot(rotate(-90, (1, 0, 0))) # look down at the center of the scene
         lightspace = light_projection.dot(light_view)
 
         vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
@@ -556,7 +556,7 @@ class Master(app.Canvas):
 
         light_position = [0,1000,0]
         light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_view = translate(light_position).dot(rotate(90, (1, 0, 0))) # look down at the center of the scene
+        light_view = translate(light_position).dot(rotate(-90, (1, 0, 0))) # look down at the center of the scene
         lightspace = light_projection.dot(light_view)
 
         # load mesh
