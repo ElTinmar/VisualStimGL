@@ -12,6 +12,26 @@ from typing import Tuple
 # if fish outside, it breaks, because fish can't be outside.
 # Remove fish and navigation alltogether for calibration ?    
 
+def lookAt(eye, target, up=[0, 1, 0]):
+    """Computes matrix to put eye looking at target point."""
+    eye = np.asarray(eye).astype(np.float32)
+    target = np.asarray(target).astype(np.float32)
+    up = np.asarray(up).astype(np.float32)
+
+    vforward = eye - target
+    vforward /= np.linalg.norm(vforward)
+    vright = np.cross(up, vforward)
+    vright /= np.linalg.norm(vright)
+    vup = np.cross(vforward, vright)
+
+    view = np.r_[vright, -np.dot(vright, eye),
+                 vup, -np.dot(vup, eye),
+                 vforward, -np.dot(vforward, eye),
+                 [0, 0, 0, 1]].reshape(4, 4, order='F')
+
+    return view
+
+
 ## UV mapping
 def cylinder_texcoords(rows, cols):
     texcoords = np.empty((rows+1, cols, 2), dtype=np.float32)
@@ -201,7 +221,7 @@ vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 vi
     vec3 diffuse = lambertian * diffuse_color;
 
     // specular
-    float light_specular = 10.0;
+    float light_specular = 1.0;
     float light_shininess = 32;
 
     vec3 view_direction = normalize(view_position - fragment_position);
@@ -372,7 +392,7 @@ class Slave(app.Canvas):
         self.cylinder_program['u_view'] = self.view
         self.cylinder_program['u_model'] = model
         self.cylinder_program['u_projection'] = self.projection
-        self.cylinder_program['u_light_position'] = [0,1000,0]
+        self.cylinder_program['u_light_position'] = [0,-1000,0]
 
     def create_cow(self):
         #mesh_path = load_data_file('spot/spot.obj.gz')
@@ -382,7 +402,7 @@ class Slave(app.Canvas):
 
         light_position = [0,1000,0]
         light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_view = translate(light_position).dot(rotate(-90, (1, 0, 0))) # look down at the center of the scene
+        light_view = lookAt(light_position, [0,0,0])
         lightspace = light_projection.dot(light_view)
 
         vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
@@ -556,7 +576,7 @@ class Master(app.Canvas):
 
         light_position = [0,1000,0]
         light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_view = translate(light_position).dot(rotate(-90, (1, 0, 0))) # look down at the center of the scene
+        light_view = lookAt(light_position, [0,0,0])
         lightspace = light_projection.dot(light_view)
 
         # load mesh
