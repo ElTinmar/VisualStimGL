@@ -436,7 +436,7 @@ class Slave(app.Canvas):
         with self.fbo: 
             gloo.clear(color=True, depth=True)
             gloo.set_viewport(0, 0, self.width, self.height)
-            gloo.set_cull_face('front')
+            #gloo.set_cull_face('front')
             self.shadowmap_program.draw('triangles', self.indices)
             
         # draw to screen
