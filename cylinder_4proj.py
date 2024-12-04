@@ -191,7 +191,7 @@ vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 vi
     vec3 specular_color = vec3(1.0, 1.0, 1.0);
 
     // ambient
-    float light_ambient = 0.5;
+    float light_ambient = 0.1;
     vec3 ambient = light_ambient * ambient_color;
 
     // diffuse
@@ -201,7 +201,7 @@ vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 vi
     vec3 diffuse = lambertian * diffuse_color;
 
     // specular
-    float light_specular = 40.0;
+    float light_specular = 10.0;
     float light_shininess = 32;
 
     vec3 view_direction = normalize(view_position - fragment_position);
