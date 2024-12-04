@@ -157,8 +157,10 @@ void main()
 # in vec2 gl_PointCoord;
 FRAG_SHADER_CYLINDER = """
 uniform sampler2D u_texture;
+uniform sampler2D u_shadow_map_texture;
 uniform vec2 u_resolution;
 uniform vec3 u_fish;
+uniform vec3 u_light_position;
 
 varying vec3 v_normal_world;
 varying vec2 v_texcoord;
@@ -166,9 +168,8 @@ varying float v_depth;
 varying vec3 v_view_position;
 varying vec4 v_world_position;
 
-vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 view_position) {
+vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 view_position, vec3 light_position) {
 
-    vec3 light_position = vec3(1000,0,0);
     vec3 ambient_color = vec3(1.0, 1.0, 1.0);
     vec3 diffuse_color = vec3(1.0, 1.0, 1.0);
     vec3 specular_color = vec3(1.0, 1.0, 1.0);
@@ -212,7 +213,7 @@ void main()
     vec4 object_color = texture2D(u_texture, v_texcoord);
 
     // lighting
-    vec4 phong_shading = Blinn_Phong(vec3(object_color), v_normal_world, vec3(v_world_position), u_fish);
+    vec4 phong_shading = Blinn_Phong(vec3(object_color), v_normal_world, vec3(v_world_position), u_fish, u_light_position);
 
     // gamma correction    
     vec4 gamma_corrected = phong_shading;
@@ -224,6 +225,12 @@ void main()
     // output
     gl_FragColor = final;
     gl_FragDepth = v_depth;
+}
+"""
+
+FRAG_SHADER_SHADOW="""
+void main()
+{
 }
 """
 
@@ -293,6 +300,9 @@ class Slave(app.Canvas):
         self.projection = frustum(left, right, bottom, top, znear, zfar)
 
     def create_object(self):
+
+        model = rotate(-90, (1,0,0)).dot(translate((0,0,2)))
+
         mesh_data = create_cylinder(
             rows = 100, 
             cols = 360, 
@@ -306,15 +316,13 @@ class Slave(app.Canvas):
         ]
         vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
         vertex['a_position'] = mesh_data.get_vertices()
-        vertex['a_texcoord']  = cylinder_texcoords(rows = 100, cols = 360)
+        vertex['a_texcoord'] = cylinder_texcoords(rows = 100, cols = 360)
         vertex['a_normal'] = mesh_data.get_vertex_normals()
 
-        # set up buffers
+        # set up vertex buffers
         indices = mesh_data.get_faces()
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(indices)
-
-        model = rotate(-90, (1,0,0)).dot(translate((0,0,2)))
     
         # set up program
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
@@ -327,10 +335,14 @@ class Slave(app.Canvas):
         self.cylinder_program['u_view'] = self.view
         self.cylinder_program['u_model'] = model
         self.cylinder_program['u_projection'] = self.projection
+        self.cylinder_program['u_light_position'] = [0,1000,0]
 
     def create_cow(self):
         #mesh_path = load_data_file('spot/spot.obj.gz')
         #texture_path = load_data_file('spot/spot.png')
+
+        model = translate((0,0,0))
+
         vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
         texture = np.flipud(imread('checker.png'))
 
@@ -341,13 +353,26 @@ class Slave(app.Canvas):
         ]
         vertex = np.zeros(vertices.shape[0], dtype=vtype)
         vertex['a_position'] = vertices
-        vertex['a_texcoord']  = texcoords
+        vertex['a_texcoord'] = texcoords
         vertex['a_normal'] = normals
 
         vbo = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(faces)
 
-        model = translate((0,0,0))
+        # set up shadow map buffer
+        self.shadow_map_texture = gloo.Texture2D(((self.height, self.width) + (3,)))
+        self.fbo = gloo.FrameBuffer(self.shadow_map_texture, gloo.RenderBuffer((self.height, self.width)))
+
+        self.shadowmap_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_SHADOW)
+        self.shadowmap_program.bind(vbo)
+        self.shadowmap_program['u_master'] = 0
+        self.shadowmap_program['u_fish'] = [0,0,0]
+        self.shadowmap_program['u_cylinder_radius'] = radius_mm
+        self.shadowmap_program['u_texture'] = two_colors()
+        self.shadowmap_program['u_resolution'] = [self.width, self.height]
+        self.shadowmap_program['u_view'] = self.view
+        self.shadowmap_program['u_model'] = model
+        self.shadowmap_program['u_projection'] = self.projection
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo)
@@ -359,8 +384,17 @@ class Slave(app.Canvas):
         self.cylinder_program['u_view'] = self.view
         self.cylinder_program['u_model'] = model
         self.cylinder_program['u_projection'] = self.projection
+        self.cylinder_program['u_light_position'] = [0,1000,0]
+        # self.cylinder_program['u_shadow_map_texture'] = self.shadow_map_texture
 
     def on_draw(self, event):
+        # # draw to the fbo 
+        # with self.fbo: 
+        #     gloo.clear(color=True, depth=True)
+        #     gloo.set_viewport(0, 0, self.width, self.height)
+        #     self.shadowmap_program.draw('triangles', self.indices)
+            
+        # draw to screen
         gloo.clear(color=True, depth=True)
         self.cylinder_program.draw('triangles', self.indices)
 
@@ -466,6 +500,7 @@ class Master(app.Canvas):
         self.cylinder_program['u_view'] = self.view
         self.cylinder_program['u_model'] = self.cylinder_model
         self.cylinder_program['u_projection'] = self.projection
+        self.cylinder_program['u_light_position'] = [0,1000,0]
 
     def create_cow(self):
         #mesh_path = load_data_file('spot/spot.obj.gz')
@@ -499,6 +534,7 @@ class Master(app.Canvas):
         self.cylinder_program['u_view'] = self.view
         self.cylinder_program['u_model'] = self.cylinder_model
         self.cylinder_program['u_projection'] = self.projection
+        self.cylinder_program['u_light_position'] = [0,1000,0]
 
     def on_mouse_move(self,event):
 
