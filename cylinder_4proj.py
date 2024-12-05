@@ -1,7 +1,7 @@
 import sys
 from vispy import gloo, app,  use 
 from vispy.geometry import create_cylinder, create_plane
-from vispy.util.transforms import perspective, translate, rotate, frustum
+from vispy.util.transforms import perspective, translate, rotate, frustum, ortho
 from vispy.io import imread, load_data_file, read_mesh
 import numpy as np
 from PyQt5.QtCore import QPoint, Qt 
@@ -199,7 +199,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position)
 {
-    float bias = 0;
+    float bias = 0.005;
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -274,6 +274,12 @@ void main()
     vec4 final = edge_blending(vec3(gamma_corrected), gl_FragCoord.xy/u_resolution, 0.125, 0.35);
     
     // output
+  
+    //vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
+    //position_ndc = position_ndc * 0.5 + 0.5;
+    //float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).z; 
+    //gl_FragColor = vec4(vec3(closest_depth), 1.0);
+
     gl_FragColor = final;
     gl_FragDepth = v_depth;
 }
@@ -295,7 +301,7 @@ void main()
 
 FRAGMENT_SHADER_SHADOW="""
 void main()
-{
+{   
 }
 """
 
@@ -404,8 +410,9 @@ class Slave(app.Canvas):
 
     def create_cow(self):
 
-        light_position = [0,1000,0]
-        light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
+        light_position =  [2,2,0]
+        #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
+        light_projection = ortho(-50,50,-50,50,0.1,1000)
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_projection.dot(light_view)
 
@@ -417,6 +424,7 @@ class Slave(app.Canvas):
             wrapping = 'repeat',
             internalformat = 'depth_component'
         )
+
         # attach texture as depth buffer
         self.fbo = gloo.FrameBuffer(depth = self.shadow_map_texture)
 
@@ -459,8 +467,8 @@ class Slave(app.Canvas):
         self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
 
         ## shell -----------------------------------------------------------------------------
-        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,0.5,0)))
-        
+        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,0.2,0)))
+
         # load texture
         texture = np.flipud(imread('quartz.jpg'))
 
@@ -617,8 +625,9 @@ class Master(app.Canvas):
 
     def create_cow(self):
 
-        light_position = [0,1000,0]
-        light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
+        light_position =  [2,2,0]
+        #light_projection = perspective(90,1,0.001,10) # use perspective for point light, orho for directional light
+        light_projection = ortho(-50,50,-50,50,0.001,100)        
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_projection.dot(light_view)
 
@@ -672,7 +681,7 @@ class Master(app.Canvas):
         self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
 
         ## shell -----------------------------------------------------------------------------
-        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,0.5,0)))
+        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,0.2,0)))
         
         # load texture
         texture = np.flipud(imread('quartz.jpg'))
