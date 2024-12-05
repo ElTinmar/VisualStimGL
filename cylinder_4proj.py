@@ -275,10 +275,10 @@ void main()
     
     // output
   
-    //vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
-    //position_ndc = position_ndc * 0.5 + 0.5;
-    //float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).z; 
-    //gl_FragColor = vec4(vec3(closest_depth), 1.0);
+    vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
+    position_ndc = position_ndc * 0.5 + 0.5;
+    float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).z; 
+    gl_FragColor = vec4(vec3(closest_depth), 1.0);
 
     gl_FragColor = final;
     gl_FragDepth = v_depth;
@@ -410,7 +410,7 @@ class Slave(app.Canvas):
 
     def create_cow(self):
 
-        light_position =  [2,2,0]
+        light_position =  [1,1,0]
         #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
         light_projection = ortho(-50,50,-50,50,0.1,1000)
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
@@ -625,9 +625,9 @@ class Master(app.Canvas):
 
     def create_cow(self):
 
-        light_position =  [2,2,0]
-        #light_projection = perspective(90,1,0.001,10) # use perspective for point light, orho for directional light
-        light_projection = ortho(-50,50,-50,50,0.001,100)        
+        light_position =  [1,1,0]
+        light_projection = perspective(90,1,0.001,5) # use perspective for point light, orho for directional light
+        #light_projection = ortho(-50,50,-50,50,0.0001,3)        
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_projection.dot(light_view)
 
