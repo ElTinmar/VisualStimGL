@@ -14,12 +14,20 @@ from typing import Tuple
 
 def lookAt(eye, target, up=[0, 1, 0]):
     """Computes matrix to put eye looking at target point."""
+
     eye = np.asarray(eye).astype(np.float32)
     target = np.asarray(target).astype(np.float32)
     up = np.asarray(up).astype(np.float32)
 
     vforward = eye - target
     vforward /= np.linalg.norm(vforward)
+
+    # if up and vforward vectors are collinear, choose a fallback vector
+    up_normalized = up / np.linalg.norm(up)
+    if abs(np.dot(up_normalized, vforward)) > 0.9999:
+        up = np.zeros(3, dtype=np.float32)
+        up[np.argmin(abs(vforward))] = 1
+
     vright = np.cross(up, vforward)
     vright /= np.linalg.norm(vright)
     vup = np.cross(vforward, vright)
@@ -576,7 +584,7 @@ class Master(app.Canvas):
 
         light_position = [0,1000,0]
         light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_view = lookAt(light_position, [0,0,0], [1,0,0])
+        light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_projection.dot(light_view)
 
         # load mesh
