@@ -189,6 +189,7 @@ uniform sampler2D u_shadow_map_texture;
 uniform vec2 u_resolution;
 uniform vec3 u_fish;
 uniform vec3 u_light_position;
+uniform float u_master;
 
 varying vec3 v_normal_world;
 varying vec2 v_texcoord;
@@ -271,7 +272,10 @@ void main()
     gamma_corrected.rgb = pow(gamma_corrected.rgb, vec3(1.0/gamma));
     
     // blend projector edges together
-    vec4 final = edge_blending(vec3(gamma_corrected), gl_FragCoord.xy/u_resolution, 0.125, 0.35);
+    vec4 final = gamma_corrected;
+    if (u_master == 0) {
+        final = edge_blending(vec3(gamma_corrected), gl_FragCoord.xy/u_resolution, 0.125, 0.35);
+    };
     
     // output
   
