@@ -229,7 +229,7 @@ vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 vi
     vec3 diffuse = lambertian * diffuse_color;
 
     // specular
-    float light_specular = 1.0;
+    float light_specular = 0.1;
     float light_shininess = 32;
 
     vec3 view_direction = normalize(view_position - fragment_position);
@@ -420,11 +420,11 @@ class Slave(app.Canvas):
         # attach texture as depth buffer
         self.fbo = gloo.FrameBuffer(depth = self.shadow_map_texture)
 
-        # load texture
-        texture = np.flipud(imread('checker.png'))
-
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,-0.1,0))
+        ground_model = translate((0,0,0))
+
+        # load texture
+        texture = np.flipud(imread('sand.jpeg'))
 
         vertices, faces, _ = create_plane(width=10, height=10, height_segments=100, width_segments=100, direction='+y')
         vtype = [
@@ -459,7 +459,10 @@ class Slave(app.Canvas):
         self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
 
         ## shell -----------------------------------------------------------------------------
-        shell_model = translate((0,0,0))
+        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,0.5,0)))
+        
+        # load texture
+        texture = np.flipud(imread('quartz.jpg'))
 
         # load mesh
         vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
@@ -630,11 +633,11 @@ class Master(app.Canvas):
         # attach texture as depth buffer
         self.fbo = gloo.FrameBuffer(depth = self.shadow_map_texture)
 
-        # load texture
-        texture = np.flipud(imread('checker.png'))
-
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,-0.1,0))
+        ground_model = translate((0,0.1,0))
+
+        # load texture
+        texture = np.flipud(imread('sand.jpeg'))
 
         vertices, faces, _ = create_plane(width=10, height=10, height_segments=100, width_segments=100, direction='+y')
         vtype = [
@@ -669,7 +672,10 @@ class Master(app.Canvas):
         self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
 
         ## shell -----------------------------------------------------------------------------
-        shell_model = translate((0,0,0))
+        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,0.5,0)))
+        
+        # load texture
+        texture = np.flipud(imread('quartz.jpg'))
 
         # load mesh
         vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
@@ -791,7 +797,7 @@ class Master(app.Canvas):
         self.ground_program.draw('triangles', self.ground_indices)
         self.cylinder_program.draw('triangles', self.indices)
         self.update()
-        
+
     def on_close(self, event):
         for slave in self.slaves:
             slave.close()
