@@ -1,6 +1,6 @@
 import sys
 from vispy import gloo, app,  use 
-from vispy.geometry import create_cylinder
+from vispy.geometry import create_cylinder, create_plane
 from vispy.util.transforms import perspective, translate, rotate, frustum
 from vispy.io import imread, load_data_file, read_mesh
 import numpy as np
@@ -403,31 +403,11 @@ class Slave(app.Canvas):
         self.cylinder_program['u_light_position'] = [0,-1000,0]
 
     def create_cow(self):
-        #mesh_path = load_data_file('spot/spot.obj.gz')
-        #texture_path = load_data_file('spot/spot.png')
-
-        model = translate((0,0,0))
 
         light_position = [0,1000,0]
         light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_view = lookAt(light_position, [0,0,0], [1,0,0])
+        light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_projection.dot(light_view)
-
-        vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
-        texture = np.flipud(imread('checker.png'))
-
-        vtype = [
-            ('a_position', np.float32, 3),
-            ('a_texcoord', np.float32, 2),
-            ('a_normal', np.float32, 3)
-        ]
-        vertex = np.zeros(vertices.shape[0], dtype=vtype)
-        vertex['a_position'] = vertices
-        vertex['a_texcoord'] = texcoords
-        vertex['a_normal'] = normals
-
-        vbo = gloo.VertexBuffer(vertex)
-        self.indices = gloo.IndexBuffer(faces)
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
@@ -440,23 +420,78 @@ class Slave(app.Canvas):
         # attach texture as depth buffer
         self.fbo = gloo.FrameBuffer(depth = self.shadow_map_texture)
 
+        # load texture
+        texture = np.flipud(imread('checker.png'))
+
+        ## ground ----------------------------------------------------------------------------
+        ground_model = translate((0,-0.1,0))
+
+        vertices, faces, _ = create_plane(width=10, height=10, height_segments=100, width_segments=100, direction='+y')
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('a_texcoord', np.float32, 2),
+            ('a_normal', np.float32, 3)
+        ]
+        vertex = np.zeros(vertices.shape[0], dtype=vtype)
+        vertex['a_position'] = vertices['position']
+        vertex['a_texcoord']  = vertices['texcoord']
+        vertex['a_normal'] = vertices['normal']
+        vbo_ground = gloo.VertexBuffer(vertex)
+        self.ground_indices = gloo.IndexBuffer(faces)
+
+        self.shadowmap_ground = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
+        self.shadowmap_ground.bind(vbo_ground)
+        self.shadowmap_ground['u_model'] = ground_model
+        self.shadowmap_ground['u_lightspace'] = lightspace
+        
+        self.ground_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
+        self.ground_program.bind(vbo_ground)
+        self.ground_program['u_master'] = 1
+        self.ground_program['u_fish'] = [0,0,0]
+        self.ground_program['u_cylinder_radius'] = radius_mm
+        self.ground_program['u_texture'] = texture
+        self.ground_program['u_resolution'] = [self.width, self.height]
+        self.ground_program['u_view'] = self.view
+        self.ground_program['u_model'] = ground_model
+        self.ground_program['u_projection'] = self.projection
+        self.ground_program['u_lightspace'] = lightspace
+        self.ground_program['u_light_position'] = light_position
+        self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
+
+        ## shell -----------------------------------------------------------------------------
+        shell_model = translate((0,0,0))
+
+        # load mesh
+        vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('a_texcoord', np.float32, 2),
+            ('a_normal', np.float32, 3)
+        ]
+        vertex = np.zeros(vertices.shape[0], dtype=vtype)
+        vertex['a_position'] = vertices
+        vertex['a_texcoord']  = texcoords
+        vertex['a_normal'] = normals
+        vbo_shell = gloo.VertexBuffer(vertex)
+        self.indices = gloo.IndexBuffer(faces)
+
         self.shadowmap_program = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
-        self.shadowmap_program.bind(vbo)        
-        self.shadowmap_program['u_model'] = model
+        self.shadowmap_program.bind(vbo_shell)
+        self.shadowmap_program['u_model'] = shell_model
         self.shadowmap_program['u_lightspace'] = lightspace
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
-        self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_master'] = 0
+        self.cylinder_program.bind(vbo_shell)
+        self.cylinder_program['u_master'] = 1
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = texture
         self.cylinder_program['u_resolution'] = [self.width, self.height]
         self.cylinder_program['u_view'] = self.view
-        self.cylinder_program['u_model'] = model
+        self.cylinder_program['u_model'] = shell_model
         self.cylinder_program['u_projection'] = self.projection
-        self.cylinder_program['u_light_position'] = light_position
         self.cylinder_program['u_lightspace'] = lightspace
+        self.cylinder_program['u_light_position'] = light_position
         self.cylinder_program['u_shadow_map_texture'] = self.shadow_map_texture
 
     def on_draw(self, event):
@@ -464,14 +499,16 @@ class Slave(app.Canvas):
         with self.fbo: 
             gloo.clear(color=True, depth=True)
             gloo.set_viewport(0, 0, self.width, self.height)
-            #gloo.set_cull_face('front')
+            self.shadowmap_ground.draw('triangles', self.ground_indices)
             self.shadowmap_program.draw('triangles', self.indices)
             
         # draw to screen
         gloo.clear(color=True, depth=True)
+        self.ground_program.draw('triangles', self.ground_indices)
         self.cylinder_program.draw('triangles', self.indices)
 
     def set_state(self, x, y, z):
+        self.ground_program['u_fish'] = [x, y, z]
         self.cylinder_program['u_fish'] = [x, y, z]
         self.update()
 
@@ -509,8 +546,8 @@ class Master(app.Canvas):
         # You can get rid of gimbal lock with quaternions
 
         # perspective frustum
-        self.z_near = 0.001
-        self.z_far = 10_000
+        self.z_near = 0.00001
+        self.z_far = 1000
         self.fovy = 90
 
         # store last mouse position
@@ -576,33 +613,11 @@ class Master(app.Canvas):
         self.cylinder_program['u_light_position'] = [0,1000,0]
 
     def create_cow(self):
-        #mesh_path = load_data_file('spot/spot.obj.gz')
-        #texture_path = load_data_file('spot/spot.png')
-
-        # model matrix
-        self.cylinder_model = translate((0,0,0))
 
         light_position = [0,1000,0]
         light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_projection.dot(light_view)
-
-        # load mesh
-        vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
-        vtype = [
-            ('a_position', np.float32, 3),
-            ('a_texcoord', np.float32, 2),
-            ('a_normal', np.float32, 3)
-        ]
-        vertex = np.zeros(vertices.shape[0], dtype=vtype)
-        vertex['a_position'] = vertices
-        vertex['a_texcoord']  = texcoords
-        vertex['a_normal'] = normals
-        vbo = gloo.VertexBuffer(vertex)
-        self.indices = gloo.IndexBuffer(faces)
-
-        # load texture
-        texture = np.flipud(imread('checker.png'))
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
@@ -615,24 +630,78 @@ class Master(app.Canvas):
         # attach texture as depth buffer
         self.fbo = gloo.FrameBuffer(depth = self.shadow_map_texture)
 
-        # create shaders
+        # load texture
+        texture = np.flipud(imread('checker.png'))
+
+        ## ground ----------------------------------------------------------------------------
+        ground_model = translate((0,-0.1,0))
+
+        vertices, faces, _ = create_plane(width=10, height=10, height_segments=100, width_segments=100, direction='+y')
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('a_texcoord', np.float32, 2),
+            ('a_normal', np.float32, 3)
+        ]
+        vertex = np.zeros(vertices.shape[0], dtype=vtype)
+        vertex['a_position'] = vertices['position']
+        vertex['a_texcoord']  = vertices['texcoord']
+        vertex['a_normal'] = vertices['normal']
+        vbo_ground = gloo.VertexBuffer(vertex)
+        self.ground_indices = gloo.IndexBuffer(faces)
+
+        self.shadowmap_ground = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
+        self.shadowmap_ground.bind(vbo_ground)
+        self.shadowmap_ground['u_model'] = ground_model
+        self.shadowmap_ground['u_lightspace'] = lightspace
+        
+        self.ground_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
+        self.ground_program.bind(vbo_ground)
+        self.ground_program['u_master'] = 1
+        self.ground_program['u_fish'] = [0,0,0]
+        self.ground_program['u_cylinder_radius'] = radius_mm
+        self.ground_program['u_texture'] = texture
+        self.ground_program['u_resolution'] = [self.width, self.height]
+        self.ground_program['u_view'] = self.view
+        self.ground_program['u_model'] = ground_model
+        self.ground_program['u_projection'] = self.projection
+        self.ground_program['u_lightspace'] = lightspace
+        self.ground_program['u_light_position'] = light_position
+        self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
+
+        ## shell -----------------------------------------------------------------------------
+        shell_model = translate((0,0,0))
+
+        # load mesh
+        vertices, faces, normals, texcoords = read_mesh('shell_simplified.obj')
+        vtype = [
+            ('a_position', np.float32, 3),
+            ('a_texcoord', np.float32, 2),
+            ('a_normal', np.float32, 3)
+        ]
+        vertex = np.zeros(vertices.shape[0], dtype=vtype)
+        vertex['a_position'] = vertices
+        vertex['a_texcoord']  = texcoords
+        vertex['a_normal'] = normals
+        vbo_shell = gloo.VertexBuffer(vertex)
+        self.indices = gloo.IndexBuffer(faces)
+
         self.shadowmap_program = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
-        self.shadowmap_program.bind(vbo)
-        self.shadowmap_program['u_model'] = self.cylinder_model
+        self.shadowmap_program.bind(vbo_shell)
+        self.shadowmap_program['u_model'] = shell_model
         self.shadowmap_program['u_lightspace'] = lightspace
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
-        self.cylinder_program.bind(vbo)
+        self.cylinder_program.bind(vbo_shell)
         self.cylinder_program['u_master'] = 1
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = texture
         self.cylinder_program['u_resolution'] = [self.width, self.height]
         self.cylinder_program['u_view'] = self.view
-        self.cylinder_program['u_model'] = self.cylinder_model
+        self.cylinder_program['u_model'] = shell_model
         self.cylinder_program['u_projection'] = self.projection
         self.cylinder_program['u_lightspace'] = lightspace
-        self.cylinder_program['u_light_position'] = [0,1000,0]
+        self.cylinder_program['u_light_position'] = light_position
         self.cylinder_program['u_shadow_map_texture'] = self.shadow_map_texture
 
     def on_mouse_move(self,event):
@@ -653,6 +722,7 @@ class Master(app.Canvas):
         self.cam_pitch = max(min(self.cam_pitch + self.step_r*dy, 90), -90)
 
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
+        self.ground_program['u_view'] = self.view
         self.cylinder_program['u_view'] = self.view      
 
         self.native.cursor().setPos(self.native.mapToGlobal(QPoint(w//2,h//2))) 
@@ -695,6 +765,8 @@ class Master(app.Canvas):
             self.cam_z += tz
 
             self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
+            self.ground_program['u_view'] = self.view
+            self.ground_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
             self.cylinder_program['u_view'] = self.view
             self.cylinder_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
             #print(f'Yaw: {self.cam_yaw}, Pitch: {self.cam_pitch}, Roll: {self.cam_roll}, X: {self.cam_x}, Y: {self.cam_y}, Z: {self.cam_z}')
@@ -711,13 +783,15 @@ class Master(app.Canvas):
         with self.fbo: 
             gloo.clear(color=True, depth=True)
             gloo.set_viewport(0, 0, self.width, self.height)
+            self.shadowmap_ground.draw('triangles', self.ground_indices)
             self.shadowmap_program.draw('triangles', self.indices)
             
         # draw to screen
         gloo.clear(color=True, depth=True)
+        self.ground_program.draw('triangles', self.ground_indices)
         self.cylinder_program.draw('triangles', self.indices)
         self.update()
-
+        
     def on_close(self, event):
         for slave in self.slaves:
             slave.close()
