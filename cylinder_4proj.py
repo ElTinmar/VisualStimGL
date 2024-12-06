@@ -200,7 +200,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position)
 {
-    float bias = 0;
+    float bias = 0.01;
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -278,10 +278,9 @@ void main()
     };
     
     // output
-  
     vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
-    float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).z; 
+    float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
     gl_FragColor = vec4(vec3(closest_depth), 1.0);
 
     gl_FragColor = final;
@@ -305,7 +304,9 @@ void main()
 
 FRAGMENT_SHADER_SHADOW="""
 void main()
-{   
+{
+    float depth = gl_FragCoord.z;
+    gl_FragColor = vec4(depth,0.0,0.0,1.0);
 }
 """
 
@@ -414,23 +415,23 @@ class Slave(app.Canvas):
 
     def create_cow(self):
 
-        light_position =  [1,1,0]
+        light_position =  [5,1,0]
         #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_projection = ortho(-50,50,-50,50,0.1,1000)
+        light_projection = ortho(-50,50,-50,50,0.0001,100)
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_projection.dot(light_view)
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
-            data = ((self.height, self.width)), 
-            format = 'depth_component',
+            data = ((self.height, self.width, 3)), 
+            format = 'rgb',
             interpolation = 'nearest',
             wrapping = 'repeat',
-            internalformat = 'depth_component'
+            internalformat = 'rgb32f'
         )
 
         # attach texture as depth buffer
-        self.fbo = gloo.FrameBuffer(depth = self.shadow_map_texture)
+        self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
         ground_model = translate((0,0,0))
@@ -629,22 +630,22 @@ class Master(app.Canvas):
 
     def create_cow(self):
 
-        light_position =  [1,1,0]
-        light_projection = perspective(90,1,0.001,5) # use perspective for point light, orho for directional light
-        #light_projection = ortho(-50,50,-50,50,0.0001,3)        
-        light_view = lookAt(light_position, [0,0,0], [0,1,0])
+        light_position =  [10,1,0]
+        #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
+        light_projection = ortho(-50,50,-50,50,0.0001,100)  
+        light_view = lookAt(light_position, [0,0,0], [0,0,1])
         lightspace = light_projection.dot(light_view)
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
-            data = ((self.height, self.width)), 
-            format = 'depth_component',
+            data = ((self.height, self.width, 3)), 
+            format = 'rgb',
             interpolation = 'nearest',
             wrapping = 'repeat',
-            internalformat = 'depth_component'
+            internalformat = 'rgb32f'
         )
         # attach texture as depth buffer
-        self.fbo = gloo.FrameBuffer(depth = self.shadow_map_texture)
+        self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
         ground_model = translate((0,0.1,0))
