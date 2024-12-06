@@ -200,7 +200,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position)
 {
-    float bias = 0.01;
+    float bias = 0.1;
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -310,6 +310,7 @@ void main()
 }
 """
 
+
 class Slave(app.Canvas):
     '''
     Side view, what needs to be projected (need to calibrate)
@@ -415,15 +416,15 @@ class Slave(app.Canvas):
 
     def create_cow(self):
 
-        light_position =  [5,1,0]
-        #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_projection = ortho(-50,50,-50,50,0.0001,100)
+        light_position =  [1,1,0]
+        light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
+        #light_projection = ortho(-1,1,-1,1,0.0001,100)
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_projection.dot(light_view)
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
-            data = ((self.height, self.width, 3)), 
+            data = ((1024, 1024, 3)), 
             format = 'rgb',
             interpolation = 'nearest',
             wrapping = 'repeat',
@@ -515,8 +516,8 @@ class Slave(app.Canvas):
         with self.fbo: 
             gloo.clear(color=True, depth=True)
             gloo.set_viewport(0, 0, self.width, self.height)
-            self.shadowmap_ground.draw('triangles', self.ground_indices)
-            self.shadowmap_program.draw('triangles', self.indices)
+            #self.shadowmap_ground.draw('triangles', self.ground_indices)
+            #self.shadowmap_program.draw('triangles', self.indices)
             
         # draw to screen
         gloo.clear(color=True, depth=True)
@@ -630,15 +631,15 @@ class Master(app.Canvas):
 
     def create_cow(self):
 
-        light_position =  [10,1,0]
-        #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_projection = ortho(-50,50,-50,50,0.0001,100)  
+        light_position =  [1,1,0]
+        light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
+        #light_projection = ortho(-1,1,-1,1,0.0001,100)
         light_view = lookAt(light_position, [0,0,0], [0,0,1])
         lightspace = light_projection.dot(light_view)
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
-            data = ((self.height, self.width, 3)), 
+            data = ((1024, 1024, 3)), 
             format = 'rgb',
             interpolation = 'nearest',
             wrapping = 'repeat',
@@ -802,9 +803,9 @@ class Master(app.Canvas):
         # draw to the fbo 
         with self.fbo: 
             gloo.clear(color=True, depth=True)
-            gloo.set_viewport(0, 0, self.width, self.height)
-            self.shadowmap_ground.draw('triangles', self.ground_indices)
-            self.shadowmap_program.draw('triangles', self.indices)
+            gloo.set_viewport(0, 0, 1024, 1024)
+            #self.shadowmap_ground.draw('triangles', self.ground_indices)
+            #self.shadowmap_program.draw('triangles', self.indices)
             
         # draw to screen
         gloo.clear(color=True, depth=True)
