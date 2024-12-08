@@ -435,7 +435,7 @@ class Slave(app.Canvas):
         self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,-0.9,0))
+        ground_model = translate((0,-1,0))
 
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
@@ -632,7 +632,7 @@ class Master(app.Canvas):
 
     def create_cow(self):
 
-        light_position =  [1,2,0]
+        light_position =  [5,2,0]
         #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
         light_projection = ortho(-5,5,-5,5,0.0001,100)
         light_view = lookAt(light_position, [0,0,0], [0,0,1])
@@ -650,7 +650,7 @@ class Master(app.Canvas):
         self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,-0.9,0))
+        ground_model = translate((0,-1,0))
 
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
