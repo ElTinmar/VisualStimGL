@@ -1,6 +1,6 @@
 import sys
 from vispy import gloo, app,  use 
-from vispy.geometry import create_cylinder, create_plane
+from vispy.geometry import create_cylinder, create_plane, create_box
 from vispy.util.transforms import perspective, translate, rotate, frustum, ortho
 from vispy.io import imread, load_data_file, read_mesh
 import numpy as np
@@ -200,7 +200,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position)
 {
-    float bias = 0.1;
+    float bias = 0.005;
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -416,11 +416,11 @@ class Slave(app.Canvas):
 
     def create_cow(self):
 
-        light_position =  [1,1,0]
-        light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        #light_projection = ortho(-1,1,-1,1,0.0001,100)
+        light_position =  [50,1,0]
+        #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
+        light_projection = ortho(-50,50,-50,50,0.0001,100)
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
-        lightspace = light_projection.dot(light_view)
+        lightspace = light_view.dot(light_projection)
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
@@ -435,12 +435,13 @@ class Slave(app.Canvas):
         self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,0,0))
+        ground_model = translate((0,-0.9,0))
 
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
 
-        vertices, faces, _ = create_plane(width=10, height=10, height_segments=100, width_segments=100, direction='+y')
+        #vertices, faces, _ = create_plane(width=10, height=10, height_segments=100, width_segments=100, direction='+y')
+        vertices, faces, _ = create_box(width=10, height=10, depth=1, height_segments=100, width_segments=100, depth_segments=10)
         vtype = [
             ('a_position', np.float32, 3),
             ('a_texcoord', np.float32, 2),
@@ -631,11 +632,11 @@ class Master(app.Canvas):
 
     def create_cow(self):
 
-        light_position =  [1,1,0]
-        light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        #light_projection = ortho(-1,1,-1,1,0.0001,100)
+        light_position =  [1,2,0]
+        #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
+        light_projection = ortho(-5,5,-5,5,0.0001,100)
         light_view = lookAt(light_position, [0,0,0], [0,0,1])
-        lightspace = light_projection.dot(light_view)
+        lightspace = light_view.dot(light_projection)
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
@@ -649,12 +650,13 @@ class Master(app.Canvas):
         self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,0.1,0))
+        ground_model = translate((0,-0.9,0))
 
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
 
-        vertices, faces, _ = create_plane(width=10, height=10, height_segments=100, width_segments=100, direction='+y')
+        #vertices, faces, _ = create_plane(width=10, height=10, height_segments=100, width_segments=100, direction='+y')
+        vertices, faces, _ = create_box(width=10, height=10, depth=1, height_segments=100, width_segments=100, depth_segments=10)
         vtype = [
             ('a_position', np.float32, 3),
             ('a_texcoord', np.float32, 2),
@@ -804,8 +806,8 @@ class Master(app.Canvas):
         with self.fbo: 
             gloo.clear(color=True, depth=True)
             gloo.set_viewport(0, 0, 1024, 1024)
-            #self.shadowmap_ground.draw('triangles', self.ground_indices)
-            #self.shadowmap_program.draw('triangles', self.indices)
+            self.shadowmap_ground.draw('triangles', self.ground_indices)
+            self.shadowmap_program.draw('triangles', self.indices)
             
         # draw to screen
         gloo.clear(color=True, depth=True)
