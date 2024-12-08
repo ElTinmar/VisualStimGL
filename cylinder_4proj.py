@@ -200,7 +200,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position)
 {
-    float bias = 0.005;
+    float bias = 0.001;
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -650,7 +650,7 @@ class Master(app.Canvas):
         self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,-1,0))
+        ground_model = translate((0,-0.4,0))
 
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
