@@ -184,6 +184,8 @@ void main()
 # in bool gl_FrontFacing;
 # in vec2 gl_PointCoord;
 FRAG_SHADER_CYLINDER = """
+#version 150
+
 uniform sampler2D u_texture;
 uniform sampler2D u_shadow_map_texture;
 uniform vec2 u_resolution;
@@ -198,16 +200,25 @@ varying vec3 v_view_position;
 varying vec4 v_world_position;
 varying vec4 v_lightspace_position;
 
-float get_shadow(vec4 lightspace_position)
+float get_shadow(vec4 lightspace_position, float lambertian)
 {
-    float bias = 0.001;
+    float bias = max(5e-4 * (1.0 - lambertian), 1e-4);    
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
     float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
     float current_depth = position_ndc.z;
-    float shadow = 0;
-    if ((current_depth - bias) > closest_depth) {shadow = 1.0;} 
+
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(u_shadow_map_texture, 0);
+    for(int x = -1; x <= 1; ++x) {
+        for(int y = -1; y <= 1; ++y) {
+            float pcfDepth = texture2D(u_shadow_map_texture, position_ndc.xy + vec2(x, y) * texelSize).r; 
+            shadow += current_depth - bias > pcfDepth ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
+
     return shadow;
 }
 
@@ -242,7 +253,7 @@ vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 vi
     // Blinn_Phong shading
     vec3 result;
     if (enable_shadows == 1.0) {
-        float shadow = get_shadow(lightspace_position);
+        float shadow = get_shadow(lightspace_position, lambertian);
         result = (ambient + (1.0 - shadow) * (diffuse + specular)) * object_color;
     }
     else {
@@ -800,6 +811,9 @@ class Master(app.Canvas):
     def on_resize(self, event):
         width, height = event.size
         gloo.set_viewport(0, 0, width, height)
+
+    def on_timer(self):
+        pass
 
     def on_draw(self, event):
         # draw to the fbo 
