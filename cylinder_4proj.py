@@ -1,6 +1,6 @@
 import sys
 from vispy import gloo, app,  use 
-from vispy.geometry import create_cylinder, create_plane, create_box
+from vispy.geometry import create_cylinder, create_box
 from vispy.util.transforms import perspective, translate, rotate, frustum, ortho
 from vispy.io import imread, load_data_file, read_mesh
 import numpy as np
@@ -200,9 +200,9 @@ varying vec3 v_view_position;
 varying vec4 v_world_position;
 varying vec4 v_lightspace_position;
 
-float get_shadow(vec4 lightspace_position, float lambertian)
+float get_shadow(vec4 lightspace_position,  vec3 norm, vec3 light_direction)
 {
-    float bias = max(1e-3 * (1.0 - lambertian), 5e-4);    
+    float bias = max(5e-2 * (1.0 - dot(norm, light_direction)), 5e-3);    
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -241,7 +241,7 @@ vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 vi
     vec3 diffuse = lambertian * diffuse_color;
 
     // specular
-    float light_specular = 0.1;
+    float light_specular = 0.5;
     float light_shininess = 32;
 
     vec3 view_direction = normalize(view_position - fragment_position);
@@ -253,7 +253,7 @@ vec4 Blinn_Phong(vec3 object_color, vec3 normal, vec3 fragment_position, vec3 vi
     // Blinn_Phong shading
     vec3 result;
     if (enable_shadows == 1.0) {
-        float shadow = get_shadow(lightspace_position, lambertian);
+        float shadow = get_shadow(lightspace_position, norm, light_direction);
         result = (ambient + (1.0 - shadow) * (diffuse + specular)) * object_color;
     }
     else {
@@ -451,7 +451,6 @@ class Slave(app.Canvas):
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
 
-        #vertices, faces, _ = create_plane(width=10, height=10, height_segments=100, width_segments=100, direction='+y')
         vertices, faces, _ = create_box(width=10, height=10, depth=1, height_segments=100, width_segments=100, depth_segments=10)
         vtype = [
             ('a_position', np.float32, 3),
@@ -591,6 +590,10 @@ class Master(app.Canvas):
         # hide cursor
         self.native.setCursor(Qt.BlankCursor)
 
+        self.light_theta = 0
+        self.light_theta_step = 0.01
+        self.timer = app.Timer(1/30, connect=self.on_timer, start=True)
+
         self.show()
 
     def set_context(self):
@@ -666,7 +669,6 @@ class Master(app.Canvas):
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
 
-        #vertices, faces, _ = create_plane(width=10, height=10, height_segments=100, width_segments=100, direction='+y')
         vertices, faces, _ = create_box(width=10, height=10, depth=1, height_segments=100, width_segments=100, depth_segments=10)
         vtype = [
             ('a_position', np.float32, 3),
@@ -812,8 +814,18 @@ class Master(app.Canvas):
         width, height = event.size
         gloo.set_viewport(0, 0, width, height)
 
-    def on_timer(self):
-        pass
+    def on_timer(self, event):
+        self.light_theta += self.light_theta_step
+        light_position =  [5*np.cos(self.light_theta),2,5*np.sin(self.light_theta)]
+
+        light_projection = ortho(-10,10,-10,10,0.01,20)
+        light_view = lookAt(light_position, [0,0,0], [0,0,1])
+        lightspace = light_view.dot(light_projection)
+        self.shadowmap_ground['u_lightspace'] = lightspace
+        self.ground_program['u_lightspace'] = lightspace
+        self.ground_program['u_light_position'] = light_position
+        self.cylinder_program['u_lightspace'] = lightspace
+        self.cylinder_program['u_light_position'] = light_position
 
     def on_draw(self, event):
         # draw to the fbo 
