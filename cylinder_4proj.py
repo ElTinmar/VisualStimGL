@@ -394,9 +394,8 @@ class Slave(app.Canvas):
 
     def create_scene(self):
 
-        light_position =  [50,1,0]
-        #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_projection = ortho(-50,50,-50,50,0.0001,100)
+        light_position =  [5,5,5]
+        light_projection = ortho(-10,10,-10,10,0.01,20)
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_view.dot(light_projection)
 
@@ -499,6 +498,7 @@ class Slave(app.Canvas):
             
         # draw to screen
         gloo.clear(color=True, depth=True)
+        gloo.set_viewport(0, 0, self.width, self.height)
         self.ground_program.draw('triangles', self.ground_indices)
         self.cylinder_program.draw('triangles', self.indices)
 
@@ -593,9 +593,8 @@ class Master(app.Canvas):
 
     def create_scene(self):
 
-        light_position =  [5,2,0]
-        #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
-        light_projection = ortho(-5,5,-5,5,0.0001,100)
+        light_position =  [5,5,5]
+        light_projection = ortho(-10,10,-10,10,0.01,20)
         light_view = lookAt(light_position, [0,0,0], [0,0,1])
         lightspace = light_view.dot(light_projection)
 
@@ -762,13 +761,15 @@ class Master(app.Canvas):
         gloo.set_viewport(0, 0, width, height)
 
     def on_timer(self, event):
+
         self.t += self.t_step
         self.light_theta += self.light_theta_step
-        light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+5,5*np.sin(self.light_theta)]
 
+        light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+5,5*np.sin(self.light_theta)]
         light_projection = ortho(-10,10,-10,10,0.01,20)
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_view.dot(light_projection)
+
         self.shadowmap_ground['u_lightspace'] = lightspace
         self.shadowmap_program['u_lightspace'] = lightspace
         self.ground_program['u_lightspace'] = lightspace
@@ -776,7 +777,6 @@ class Master(app.Canvas):
         self.cylinder_program['u_lightspace'] = lightspace
         self.cylinder_program['u_light_position'] = light_position
         
-
     def on_draw(self, event):
         # draw to the fbo 
         with self.fbo: 
@@ -787,6 +787,7 @@ class Master(app.Canvas):
             
         # draw to screen
         gloo.clear(color=True, depth=True)
+        gloo.set_viewport(0, 0, self.width, self.height)
         self.ground_program.draw('triangles', self.ground_indices)
         self.cylinder_program.draw('triangles', self.indices)
         self.update()
