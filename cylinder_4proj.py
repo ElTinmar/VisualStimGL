@@ -424,7 +424,7 @@ class Slave(app.Canvas):
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
-            data = ((1024, 1024, 3)), 
+            data = ((2048, 2048, 3)), 
             format = 'rgb',
             interpolation = 'nearest',
             wrapping = 'repeat',
@@ -435,7 +435,7 @@ class Slave(app.Canvas):
         self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,-1,0))
+        ground_model = translate((0,-0.4,0))
 
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
@@ -516,9 +516,9 @@ class Slave(app.Canvas):
         # draw to the fbo 
         with self.fbo: 
             gloo.clear(color=True, depth=True)
-            gloo.set_viewport(0, 0, self.width, self.height)
-            #self.shadowmap_ground.draw('triangles', self.ground_indices)
-            #self.shadowmap_program.draw('triangles', self.indices)
+            gloo.set_viewport(0, 0, 2048, 2048)
+            self.shadowmap_ground.draw('triangles', self.ground_indices)
+            self.shadowmap_program.draw('triangles', self.indices)
             
         # draw to screen
         gloo.clear(color=True, depth=True)
@@ -640,7 +640,7 @@ class Master(app.Canvas):
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
-            data = ((1024, 1024, 3)), 
+            data = ((2048, 2048, 3)), 
             format = 'rgb',
             interpolation = 'nearest',
             wrapping = 'repeat',
@@ -805,7 +805,7 @@ class Master(app.Canvas):
         # draw to the fbo 
         with self.fbo: 
             gloo.clear(color=True, depth=True)
-            gloo.set_viewport(0, 0, 1024, 1024)
+            gloo.set_viewport(0, 0, 2048, 2048)
             self.shadowmap_ground.draw('triangles', self.ground_indices)
             self.shadowmap_program.draw('triangles', self.indices)
             
