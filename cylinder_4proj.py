@@ -366,6 +366,13 @@ class Slave(app.Canvas):
         self.create_projection()
         self.create_cow()
         #self.create_object()
+
+        self.light_theta = 0
+        self.light_theta_step = 0.01
+        self.t = 0
+        self.t_step = 1/30
+        self.timer = app.Timer(1/30, connect=self.on_timer, start=True)
+
         self.show()
 
     def set_context(self):
@@ -537,6 +544,22 @@ class Slave(app.Canvas):
     def set_state(self, x, y, z):
         self.ground_program['u_fish'] = [x, y, z]
         self.cylinder_program['u_fish'] = [x, y, z]
+        self.update()
+
+    def on_timer(self, event):
+        self.t += self.t_step
+        self.light_theta += self.light_theta_step
+        light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+2,5*np.sin(self.light_theta)]
+
+        light_projection = ortho(-10,10,-10,10,0.01,20)
+        light_view = lookAt(light_position, [0,0,0], [0,1,0])
+        lightspace = light_view.dot(light_projection)
+        self.shadowmap_ground['u_lightspace'] = lightspace
+        self.shadowmap_program['u_lightspace'] = lightspace
+        self.ground_program['u_lightspace'] = lightspace
+        self.ground_program['u_light_position'] = light_position
+        self.cylinder_program['u_lightspace'] = lightspace
+        self.cylinder_program['u_light_position'] = light_position
         self.update()
 
 class Master(app.Canvas):
