@@ -202,7 +202,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position,  vec3 norm, vec3 light_direction)
 {
-    float bias = max(5e-2 * (1.0 - dot(norm, light_direction)), 5e-3);    
+    float bias = max(5e-3 * (1.0 - dot(norm, light_direction)), 0.007);    
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -214,7 +214,7 @@ float get_shadow(vec4 lightspace_position,  vec3 norm, vec3 light_direction)
     for(int x = -1; x <= 1; ++x) {
         for(int y = -1; y <= 1; ++y) {
             float pcfDepth = texture2D(u_shadow_map_texture, position_ndc.xy + vec2(x, y) * texelSize).r; 
-            shadow += current_depth - bias > pcfDepth ? 1.0 : 0.0;        
+            shadow += (current_depth - bias) > pcfDepth ? 1.0 : 0.0;        
         }    
     }
     shadow /= 9.0;
@@ -320,7 +320,6 @@ void main()
     gl_FragColor = vec4(depth,0.0,0.0,1.0);
 }
 """
-
 
 class Slave(app.Canvas):
     '''
@@ -592,6 +591,8 @@ class Master(app.Canvas):
 
         self.light_theta = 0
         self.light_theta_step = 0.01
+        self.t = 0
+        self.t_step = 1/30
         self.timer = app.Timer(1/30, connect=self.on_timer, start=True)
 
         self.show()
@@ -702,7 +703,7 @@ class Master(app.Canvas):
         self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
 
         ## shell -----------------------------------------------------------------------------
-        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,0.2,0)))
+        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,0.1,0)))
         
         # load texture
         texture = np.flipud(imread('quartz.jpg'))
@@ -815,17 +816,20 @@ class Master(app.Canvas):
         gloo.set_viewport(0, 0, width, height)
 
     def on_timer(self, event):
+        self.t += self.t_step
         self.light_theta += self.light_theta_step
-        light_position =  [5*np.cos(self.light_theta),2,5*np.sin(self.light_theta)]
+        light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+2,5*np.sin(self.light_theta)]
 
         light_projection = ortho(-10,10,-10,10,0.01,20)
-        light_view = lookAt(light_position, [0,0,0], [0,0,1])
+        light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_view.dot(light_projection)
         self.shadowmap_ground['u_lightspace'] = lightspace
+        self.shadowmap_program['u_lightspace'] = lightspace
         self.ground_program['u_lightspace'] = lightspace
         self.ground_program['u_light_position'] = light_position
         self.cylinder_program['u_lightspace'] = lightspace
         self.cylinder_program['u_light_position'] = light_position
+        
 
     def on_draw(self, event):
         # draw to the fbo 
