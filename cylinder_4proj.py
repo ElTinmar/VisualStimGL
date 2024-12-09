@@ -202,7 +202,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position,  vec3 norm, vec3 light_direction)
 {
-    float bias = max(5e-3 * (1.0 - dot(norm, light_direction)), 0.007);    
+    float bias = max(5e-3 * (1.0 - dot(norm, light_direction)), 0.01);    
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -218,6 +218,9 @@ float get_shadow(vec4 lightspace_position,  vec3 norm, vec3 light_direction)
         }    
     }
     shadow /= 9.0;
+
+    if(position_ndc.z > 1.0)
+        shadow = 0.0;
 
     return shadow;
 }
@@ -510,7 +513,7 @@ class Slave(app.Canvas):
     def on_timer(self, event):
         self.t += self.t_step
         self.light_theta += self.light_theta_step
-        light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+5,5*np.sin(self.light_theta)]
+        light_position =  [5*np.cos(self.light_theta),np.sin(self.t)+6,5*np.sin(self.light_theta)]
 
         light_projection = ortho(-10,10,-10,10,0.01,20)
         light_view = lookAt(light_position, [0,4,0], [0,1,0])
@@ -765,7 +768,7 @@ class Master(app.Canvas):
         self.t += self.t_step
         self.light_theta += self.light_theta_step
 
-        light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+5,5*np.sin(self.light_theta)]
+        light_position =  [5*np.cos(self.light_theta),np.sin(self.t)+6,5*np.sin(self.light_theta)]
         light_projection = ortho(-10,10,-10,10,0.01,20)
         light_view = lookAt(light_position, [0,4,0], [0,1,0])
         lightspace = light_view.dot(light_projection)
