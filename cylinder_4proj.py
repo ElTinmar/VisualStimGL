@@ -452,7 +452,7 @@ class Slave(app.Canvas):
         self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,-0.4,0))
+        ground_model = translate((0,2.6,0))
 
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
@@ -490,7 +490,7 @@ class Slave(app.Canvas):
         self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
 
         ## shell -----------------------------------------------------------------------------
-        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,0.2,0)))
+        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,3.2,0)))
 
         # load texture
         texture = np.flipud(imread('quartz.jpg'))
@@ -549,7 +549,7 @@ class Slave(app.Canvas):
     def on_timer(self, event):
         self.t += self.t_step
         self.light_theta += self.light_theta_step
-        light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+2,5*np.sin(self.light_theta)]
+        light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+5,5*np.sin(self.light_theta)]
 
         light_projection = ortho(-10,10,-10,10,0.01,20)
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
@@ -688,7 +688,7 @@ class Master(app.Canvas):
         self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,-0.4,0))
+        ground_model = translate((0,2.6,0))
 
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
@@ -726,7 +726,7 @@ class Master(app.Canvas):
         self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
 
         ## shell -----------------------------------------------------------------------------
-        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,0.1,0)))
+        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,3.2,0)))
         
         # load texture
         texture = np.flipud(imread('quartz.jpg'))
@@ -841,7 +841,7 @@ class Master(app.Canvas):
     def on_timer(self, event):
         self.t += self.t_step
         self.light_theta += self.light_theta_step
-        light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+2,5*np.sin(self.light_theta)]
+        light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+5,5*np.sin(self.light_theta)]
 
         light_projection = ortho(-10,10,-10,10,0.01,20)
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
