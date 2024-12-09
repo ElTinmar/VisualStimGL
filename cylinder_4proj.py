@@ -202,7 +202,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position, float lambertian)
 {
-    float bias = max(5e-4 * (1.0 - lambertian), 1e-4);    
+    float bias = max(1e-3 * (1.0 - lambertian), 5e-4);    
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
