@@ -364,8 +364,7 @@ class Slave(app.Canvas):
         self.set_context()
         self.create_view()
         self.create_projection()
-        self.create_cow()
-        #self.create_object()
+        self.create_scene()
 
         self.light_theta = 0
         self.light_theta_step = 0.01
@@ -393,45 +392,7 @@ class Slave(app.Canvas):
         left = -right
         self.projection = frustum(left, right, bottom, top, znear, zfar)
 
-    def create_object(self):
-
-        model = rotate(-90, (1,0,0)).dot(translate((0,0,2)))
-
-        mesh_data = create_cylinder(
-            rows = 100, 
-            cols = 360, 
-            radius = 3,
-            length = 30 
-        )
-        vtype = [
-            ('a_position', np.float32, 3),
-            ('a_texcoord', np.float32, 2),
-            ('a_normal', np.float32, 3)
-        ]
-        vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
-        vertex['a_position'] = mesh_data.get_vertices()
-        vertex['a_texcoord'] = cylinder_texcoords(rows = 100, cols = 360)
-        vertex['a_normal'] = mesh_data.get_vertex_normals()
-
-        # set up vertex buffers
-        indices = mesh_data.get_faces()
-        vbo = gloo.VertexBuffer(vertex)
-        self.indices = gloo.IndexBuffer(indices)
-    
-        # set up program
-        self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
-        self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_master'] = 0
-        self.cylinder_program['u_fish'] = [0,0,0]
-        self.cylinder_program['u_cylinder_radius'] = radius_mm
-        self.cylinder_program['u_texture'] = two_colors()
-        self.cylinder_program['u_resolution'] = [self.width, self.height]
-        self.cylinder_program['u_view'] = self.view
-        self.cylinder_program['u_model'] = model
-        self.cylinder_program['u_projection'] = self.projection
-        self.cylinder_program['u_light_position'] = [0,-1000,0]
-
-    def create_cow(self):
+    def create_scene(self):
 
         light_position =  [50,1,0]
         #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
@@ -572,7 +533,7 @@ class Master(app.Canvas):
 
         app.Canvas.__init__(
             self, 
-            size = (800,600), 
+            size = (1280,800), 
             position = (0,0), 
             fullscreen = False, 
             keys = 'interactive'
@@ -606,8 +567,7 @@ class Master(app.Canvas):
         self.set_context()
         self.create_view()
         self.create_projection()
-        #self.create_object()
-        self.create_cow()
+        self.create_scene()
 
         # hide cursor
         self.native.setCursor(Qt.BlankCursor)
@@ -631,44 +591,7 @@ class Master(app.Canvas):
     def create_projection(self):
         self.projection = perspective(self.fovy, self.width / float(self.height), self.z_near, self.z_far)
 
-    def create_object(self):
-        mesh_data = create_cylinder(
-            rows = 100, 
-            cols = 360, 
-            radius = 3,
-            length = 30 
-        )
-        vtype = [
-            ('a_position', np.float32, 3),
-            ('a_texcoord', np.float32, 2),
-            ('a_normal', np.float32, 3)
-        ]
-        vertex = np.zeros(mesh_data.n_vertices, dtype=vtype)
-        vertex['a_position'] = mesh_data.get_vertices()
-        vertex['a_texcoord']  = cylinder_texcoords(rows = 100, cols = 360)
-        vertex['a_normal'] = mesh_data.get_vertex_normals()
-
-        # set up buffers
-        indices = mesh_data.get_faces()
-        vbo = gloo.VertexBuffer(vertex)
-        self.indices = gloo.IndexBuffer(indices)
-
-        self.cylinder_model = rotate(-90, (1,0,0)).dot(translate((0,0,0)))
-
-        # set up program
-        self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
-        self.cylinder_program.bind(vbo)
-        self.cylinder_program['u_master'] = 1
-        self.cylinder_program['u_fish'] = [0,0,0]
-        self.cylinder_program['u_cylinder_radius'] = radius_mm
-        self.cylinder_program['u_texture'] = two_colors()
-        self.cylinder_program['u_resolution'] = [self.width, self.height]
-        self.cylinder_program['u_view'] = self.view
-        self.cylinder_program['u_model'] = self.cylinder_model
-        self.cylinder_program['u_projection'] = self.projection
-        self.cylinder_program['u_light_position'] = [0,1000,0]
-
-    def create_cow(self):
+    def create_scene(self):
 
         light_position =  [5,2,0]
         #light_projection = perspective(90,1,0.1,10_000) # use perspective for point light, orho for directional light
