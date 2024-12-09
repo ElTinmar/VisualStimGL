@@ -513,7 +513,7 @@ class Slave(app.Canvas):
         light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+5,5*np.sin(self.light_theta)]
 
         light_projection = ortho(-10,10,-10,10,0.01,20)
-        light_view = lookAt(light_position, [0,0,0], [0,1,0])
+        light_view = lookAt(light_position, [0,4,0], [0,1,0])
         lightspace = light_view.dot(light_projection)
         self.shadowmap_ground['u_lightspace'] = lightspace
         self.shadowmap_program['u_lightspace'] = lightspace
@@ -767,7 +767,7 @@ class Master(app.Canvas):
 
         light_position =  [5*np.cos(self.light_theta),np.sin(1/5*self.t)+5,5*np.sin(self.light_theta)]
         light_projection = ortho(-10,10,-10,10,0.01,20)
-        light_view = lookAt(light_position, [0,0,0], [0,1,0])
+        light_view = lookAt(light_position, [0,4,0], [0,1,0])
         lightspace = light_view.dot(light_projection)
 
         self.shadowmap_ground['u_lightspace'] = lightspace
