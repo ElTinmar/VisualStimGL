@@ -202,14 +202,22 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position,  vec3 norm, vec3 light_direction)
 {
-    float bias = max(5e-3 * (1.0 - dot(norm, light_direction)), 0.01);    
+    float bias = mix(0.001, 0.0, dot(norm, light_direction));    
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
+    
     float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
     float current_depth = position_ndc.z;
-
     float shadow = 0.0;
+
+    if ( position_ndc.z > 1.0 || 
+        position_ndc.x < 0.0 || position_ndc.x > 1.0 ||
+        position_ndc.y < 0.0 || position_ndc.y > 1.0
+    ) {
+        return shadow;
+    }
+
     vec2 texelSize = 1.0 / textureSize(u_shadow_map_texture, 0);
     for(int x = -1; x <= 1; ++x) {
         for(int y = -1; y <= 1; ++y) {
@@ -218,9 +226,6 @@ float get_shadow(vec4 lightspace_position,  vec3 norm, vec3 light_direction)
         }    
     }
     shadow /= 9.0;
-
-    if(position_ndc.z > 1.0)
-        shadow = 0.0;
 
     return shadow;
 }
@@ -496,12 +501,14 @@ class Slave(app.Canvas):
         with self.fbo: 
             gloo.clear(color=True, depth=True)
             gloo.set_viewport(0, 0, 1024, 1024)
+            gloo.set_cull_face('front')
             self.shadowmap_ground.draw('triangles', self.ground_indices)
             self.shadowmap_program.draw('triangles', self.indices)
             
         # draw to screen
         gloo.clear(color=True, depth=True)
         gloo.set_viewport(0, 0, self.width, self.height)
+        gloo.set_cull_face('back')
         self.ground_program.draw('triangles', self.ground_indices)
         self.cylinder_program.draw('triangles', self.indices)
 
@@ -769,7 +776,7 @@ class Master(app.Canvas):
         self.light_theta += self.light_theta_step
 
         light_position =  [5*np.cos(self.light_theta),np.sin(self.t)+6,5*np.sin(self.light_theta)]
-        light_projection = ortho(-10,10,-10,10,0.01,20)
+        light_projection = ortho(-1,1,-1,1,0.01,20)
         light_view = lookAt(light_position, [0,4,0], [0,1,0])
         lightspace = light_view.dot(light_projection)
 
@@ -785,12 +792,14 @@ class Master(app.Canvas):
         with self.fbo: 
             gloo.clear(color=True, depth=True)
             gloo.set_viewport(0, 0, 1024, 1024)
+            gloo.set_cull_face('front')
             self.shadowmap_ground.draw('triangles', self.ground_indices)
             self.shadowmap_program.draw('triangles', self.indices)
             
         # draw to screen
         gloo.clear(color=True, depth=True)
         gloo.set_viewport(0, 0, self.width, self.height)
+        gloo.set_cull_face('back')
         self.ground_program.draw('triangles', self.ground_indices)
         self.cylinder_program.draw('triangles', self.indices)
         self.update()
