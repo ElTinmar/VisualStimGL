@@ -435,7 +435,7 @@ class Slave(app.Canvas):
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
-            data = ((2048, 2048, 3)), 
+            data = ((1024, 1024, 3)), 
             format = 'rgb',
             interpolation = 'nearest',
             wrapping = 'repeat',
@@ -527,7 +527,7 @@ class Slave(app.Canvas):
         # draw to the fbo 
         with self.fbo: 
             gloo.clear(color=True, depth=True)
-            gloo.set_viewport(0, 0, 2048, 2048)
+            gloo.set_viewport(0, 0, 1024, 1024)
             self.shadowmap_ground.draw('triangles', self.ground_indices)
             self.shadowmap_program.draw('triangles', self.indices)
             
@@ -651,7 +651,7 @@ class Master(app.Canvas):
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
-            data = ((2048, 2048, 3)), 
+            data = ((1024, 1024, 3)), 
             format = 'rgb',
             interpolation = 'nearest',
             wrapping = 'repeat',
@@ -819,7 +819,7 @@ class Master(app.Canvas):
         # draw to the fbo 
         with self.fbo: 
             gloo.clear(color=True, depth=True)
-            gloo.set_viewport(0, 0, 2048, 2048)
+            gloo.set_viewport(0, 0, 1024, 1024)
             self.shadowmap_ground.draw('triangles', self.ground_indices)
             self.shadowmap_program.draw('triangles', self.indices)
             
