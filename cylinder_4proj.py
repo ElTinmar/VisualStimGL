@@ -477,7 +477,7 @@ class Slave(app.Canvas):
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo_shell)
-        self.cylinder_program['u_master'] = 1
+        self.cylinder_program['u_master'] = 0
         self.cylinder_program['u_fish'] = [0,0,0]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = texture
