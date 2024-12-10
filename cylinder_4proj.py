@@ -1,8 +1,8 @@
 import sys
 from vispy import gloo, app,  use 
-from vispy.geometry import create_cylinder, create_box
+from vispy.geometry import create_box
 from vispy.util.transforms import perspective, translate, rotate, frustum, ortho
-from vispy.io import imread, load_data_file, read_mesh
+from vispy.io import imread, read_mesh
 import numpy as np
 from PyQt5.QtCore import QPoint, Qt 
 from typing import Tuple
@@ -329,6 +329,11 @@ void main()
 }
 """
 
+GROUND_OFFSET = 50
+SHELL_MODEL = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,GROUND_OFFSET+0.6,0)))
+GROUND_MODEL = translate((0,GROUND_OFFSET,0))
+SHADOWMAP_RES = 2048
+
 class Slave(app.Canvas):
     '''
     Side view, what needs to be projected (need to calibrate)
@@ -409,7 +414,7 @@ class Slave(app.Canvas):
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
-            data = ((2048, 2048, 3)), 
+            data = ((SHADOWMAP_RES, SHADOWMAP_RES, 3)), 
             format = 'rgb',
             interpolation = 'nearest',
             wrapping = 'repeat',
@@ -420,8 +425,6 @@ class Slave(app.Canvas):
         self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,2.6,0))
-
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
 
@@ -440,7 +443,7 @@ class Slave(app.Canvas):
 
         self.shadowmap_ground = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
         self.shadowmap_ground.bind(vbo_ground)
-        self.shadowmap_ground['u_model'] = ground_model
+        self.shadowmap_ground['u_model'] = GROUND_MODEL
         self.shadowmap_ground['u_lightspace'] = lightspace
         
         self.ground_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
@@ -451,15 +454,13 @@ class Slave(app.Canvas):
         self.ground_program['u_texture'] = texture
         self.ground_program['u_resolution'] = [self.width, self.height]
         self.ground_program['u_view'] = self.view
-        self.ground_program['u_model'] = ground_model
+        self.ground_program['u_model'] = GROUND_MODEL
         self.ground_program['u_projection'] = self.projection
         self.ground_program['u_lightspace'] = lightspace
         self.ground_program['u_light_position'] = light_position
         self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
 
         ## shell -----------------------------------------------------------------------------
-        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,3.2,0)))
-
         # load texture
         texture = np.flipud(imread('quartz.jpg'))
 
@@ -479,7 +480,7 @@ class Slave(app.Canvas):
 
         self.shadowmap_program = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
         self.shadowmap_program.bind(vbo_shell)
-        self.shadowmap_program['u_model'] = shell_model
+        self.shadowmap_program['u_model'] = SHELL_MODEL
         self.shadowmap_program['u_lightspace'] = lightspace
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
@@ -490,7 +491,7 @@ class Slave(app.Canvas):
         self.cylinder_program['u_texture'] = texture
         self.cylinder_program['u_resolution'] = [self.width, self.height]
         self.cylinder_program['u_view'] = self.view
-        self.cylinder_program['u_model'] = shell_model
+        self.cylinder_program['u_model'] = SHELL_MODEL
         self.cylinder_program['u_projection'] = self.projection
         self.cylinder_program['u_lightspace'] = lightspace
         self.cylinder_program['u_light_position'] = light_position
@@ -500,7 +501,7 @@ class Slave(app.Canvas):
         # draw to the fbo 
         with self.fbo: 
             gloo.clear(color=True, depth=True)
-            gloo.set_viewport(0, 0, 2048, 2048)
+            gloo.set_viewport(0, 0, SHADOWMAP_RES, SHADOWMAP_RES)
             gloo.set_cull_face('front')
             self.shadowmap_ground.draw('triangles', self.ground_indices)
             self.shadowmap_program.draw('triangles', self.indices)
@@ -520,10 +521,10 @@ class Slave(app.Canvas):
     def on_timer(self, event):
         self.t += self.t_step
         self.light_theta += self.light_theta_step
-        light_position =  [5*np.cos(self.light_theta),np.sin(self.t)+6,5*np.sin(self.light_theta)]
+        light_position =  [5*np.cos(self.light_theta),np.sin(self.t)+GROUND_OFFSET+2,5*np.sin(self.light_theta)]
 
         light_projection = ortho(-1,1,-1,1,0.1,20)
-        light_view = lookAt(light_position, [0,4,0], [0,1,0])
+        light_view = lookAt(light_position, [0,GROUND_OFFSET+0.6,0], [0,1,0])
         lightspace = light_view.dot(light_projection)
         self.shadowmap_ground['u_lightspace'] = lightspace
         self.shadowmap_program['u_lightspace'] = lightspace
@@ -558,7 +559,7 @@ class Master(app.Canvas):
 
         # camera location and rotation
         self.cam_x = 0
-        self.cam_y = 0
+        self.cam_y = GROUND_OFFSET+0.8
         self.cam_z = 0
         self.cam_yaw = 0.0
         self.cam_pitch = 0.0
@@ -588,6 +589,9 @@ class Master(app.Canvas):
         self.t_step = 1/30
         self.timer = app.Timer(1/30, connect=self.on_timer, start=True)
 
+        for slave in self.slaves:
+            slave.set_state(self.cam_x, self.cam_y, self.cam_z)
+
         self.show()
 
     def set_context(self):
@@ -610,7 +614,7 @@ class Master(app.Canvas):
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
-            data = ((2048, 2048, 3)), 
+            data = ((SHADOWMAP_RES, SHADOWMAP_RES, 3)), 
             format = 'rgb',
             interpolation = 'nearest',
             wrapping = 'repeat',
@@ -620,7 +624,6 @@ class Master(app.Canvas):
         self.fbo = gloo.FrameBuffer(color = self.shadow_map_texture)
 
         ## ground ----------------------------------------------------------------------------
-        ground_model = translate((0,2.6,0))
 
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
@@ -640,25 +643,24 @@ class Master(app.Canvas):
 
         self.shadowmap_ground = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
         self.shadowmap_ground.bind(vbo_ground)
-        self.shadowmap_ground['u_model'] = ground_model
+        self.shadowmap_ground['u_model'] = GROUND_MODEL
         self.shadowmap_ground['u_lightspace'] = lightspace
         
         self.ground_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.ground_program.bind(vbo_ground)
         self.ground_program['u_master'] = 1
-        self.ground_program['u_fish'] = [0,0,0]
+        self.ground_program['u_fish'] = [self.cam_x,self.cam_y,self.cam_z]
         self.ground_program['u_cylinder_radius'] = radius_mm
         self.ground_program['u_texture'] = texture
         self.ground_program['u_resolution'] = [self.width, self.height]
         self.ground_program['u_view'] = self.view
-        self.ground_program['u_model'] = ground_model
+        self.ground_program['u_model'] = GROUND_MODEL
         self.ground_program['u_projection'] = self.projection
         self.ground_program['u_lightspace'] = lightspace
         self.ground_program['u_light_position'] = light_position
         self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
 
         ## shell -----------------------------------------------------------------------------
-        shell_model = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,3.2,0)))
         
         # load texture
         texture = np.flipud(imread('quartz.jpg'))
@@ -679,18 +681,18 @@ class Master(app.Canvas):
 
         self.shadowmap_program = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
         self.shadowmap_program.bind(vbo_shell)
-        self.shadowmap_program['u_model'] = shell_model
+        self.shadowmap_program['u_model'] = SHELL_MODEL
         self.shadowmap_program['u_lightspace'] = lightspace
 
         self.cylinder_program = gloo.Program(VERT_SHADER_CYLINDER, FRAG_SHADER_CYLINDER)
         self.cylinder_program.bind(vbo_shell)
         self.cylinder_program['u_master'] = 1
-        self.cylinder_program['u_fish'] = [0,0,0]
+        self.cylinder_program['u_fish'] = [self.cam_x,self.cam_y,self.cam_z]
         self.cylinder_program['u_cylinder_radius'] = radius_mm
         self.cylinder_program['u_texture'] = texture
         self.cylinder_program['u_resolution'] = [self.width, self.height]
         self.cylinder_program['u_view'] = self.view
-        self.cylinder_program['u_model'] = shell_model
+        self.cylinder_program['u_model'] = SHELL_MODEL
         self.cylinder_program['u_projection'] = self.projection
         self.cylinder_program['u_lightspace'] = lightspace
         self.cylinder_program['u_light_position'] = light_position
@@ -775,9 +777,9 @@ class Master(app.Canvas):
         self.t += self.t_step
         self.light_theta += self.light_theta_step
 
-        light_position =  [5*np.cos(self.light_theta),np.sin(self.t)+6,5*np.sin(self.light_theta)]
+        light_position =  [5*np.cos(self.light_theta),np.sin(self.t)+GROUND_OFFSET+2,5*np.sin(self.light_theta)]
         light_projection = ortho(-1,1,-1,1,1,7)
-        light_view = lookAt(light_position, [0,4,0], [0,1,0])
+        light_view = lookAt(light_position, [0,GROUND_OFFSET+0.6,0], [0,1,0])
         lightspace = light_view.dot(light_projection)
 
         self.shadowmap_ground['u_lightspace'] = lightspace
@@ -791,7 +793,7 @@ class Master(app.Canvas):
         # draw to the fbo 
         with self.fbo: 
             gloo.clear(color=True, depth=True)
-            gloo.set_viewport(0, 0, 2048, 2048)
+            gloo.set_viewport(0, 0, SHADOWMAP_RES, SHADOWMAP_RES)
             gloo.set_cull_face('front')
             self.shadowmap_ground.draw('triangles', self.ground_indices)
             self.shadowmap_program.draw('triangles', self.indices)
