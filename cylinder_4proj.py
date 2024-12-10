@@ -202,7 +202,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position,  vec3 norm, vec3 light_direction)
 {
-    float bias = mix(0.005, 0.0, dot(norm, light_direction));    
+    float bias = mix(0.003, 0.0, dot(norm, light_direction));    
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -523,7 +523,7 @@ class Slave(app.Canvas):
         self.light_theta += self.light_theta_step
         light_position =  [5*np.cos(self.light_theta),np.sin(self.t)+GROUND_OFFSET+2,5*np.sin(self.light_theta)]
 
-        light_projection = ortho(-1,1,-1,1,0.1,20)
+        light_projection = ortho(-1,1,-1,1,1,8)
         light_view = lookAt(light_position, [0,GROUND_OFFSET+0.6,0], [0,1,0])
         lightspace = light_view.dot(light_projection)
         self.shadowmap_ground['u_lightspace'] = lightspace
@@ -755,7 +755,7 @@ class Master(app.Canvas):
             tx,ty,tz,_ = rotate(self.cam_yaw, (0, 1, 0)).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0))) @ np.hstack((t_vec,1.0))
 
             self.cam_x += tx
-            self.cam_y += ty
+            #self.cam_y += ty
             self.cam_z += tz
 
             self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z)).dot(rotate(self.cam_yaw, (0, 1, 0))).dot(rotate(self.cam_roll, (0, 0, 1))).dot(rotate(self.cam_pitch, (1, 0, 0)))
@@ -778,7 +778,7 @@ class Master(app.Canvas):
         self.light_theta += self.light_theta_step
 
         light_position =  [5*np.cos(self.light_theta),np.sin(self.t)+GROUND_OFFSET+2,5*np.sin(self.light_theta)]
-        light_projection = ortho(-1,1,-1,1,1,7)
+        light_projection = ortho(-1,1,-1,1,1,8)
         light_view = lookAt(light_position, [0,GROUND_OFFSET+0.6,0], [0,1,0])
         lightspace = light_view.dot(light_projection)
 
