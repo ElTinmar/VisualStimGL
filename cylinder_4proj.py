@@ -553,8 +553,8 @@ class Master(app.Canvas):
         self.slaves = slaves
 
         # rotation and translation gain
-        self.step_t = 0.25
-        self.step_t_fast = 1
+        self.step_t = 0.05
+        self.step_t_fast = 0.2
         self.step_r = 0.1
 
         # camera location and rotation
