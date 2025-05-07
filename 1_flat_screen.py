@@ -50,6 +50,7 @@ uniform vec3 u_fish;
 attribute vec3 a_position;
 attribute vec2 a_texcoord;
 attribute vec3 a_normal;
+attribute vec3 a_instance_shift;
 
 // varying
 varying vec2 v_texcoord;
@@ -60,7 +61,7 @@ varying vec4 v_lightspace_position;
 
 void main()
 {
-    vec4 vertex_world = u_model * vec4(a_position, 1.0);
+    vec4 vertex_world = u_model * vec4(a_position + a_instance_shift, 1.0);
     vec3 normal_world = transpose(inverse(mat3(u_model))) * a_normal;
     vec3 viewpoint_world = vec3(inverse(u_view)[3]);
     vec4 vertex_clip = u_projection * u_view * vertex_world;
@@ -240,10 +241,11 @@ class Master(app.Canvas):
 
         # camera location and rotation
         self.cam_x = 0
-        self.cam_y = 0.8
-        self.cam_z = 1
+        self.cam_y = 1
+        self.cam_z = 20
 
         # frustum
+        self.near = 0.1
         self.frustum_depth = 1000
 
         # store last mouse position
@@ -278,10 +280,12 @@ class Master(app.Canvas):
         right = left + self.screen_width_cm
         bottom = self.screen_bottomleft_y-self.cam_y
         top = bottom + self.screen_height_cm
-        near = abs(self.screen_bottomleft_z-self.cam_z)
-        far = near + self.frustum_depth
-        self.projection = frustum(left,right,bottom,top,near,far)
-        #self.projection = perspective(90, self.width / float(self.height), 0.0001, 1000)
+        far = self.near + self.frustum_depth
+        scale = self.near/abs(self.screen_bottomleft_z-self.cam_z)
+        #self.projection = frustum(left*scale,right*scale,bottom*scale,top*scale,self.near,far)
+
+        fovy_rad = 2*np.arctan2(top, abs(self.screen_bottomleft_z-self.cam_z))
+        self.projection = perspective(np.rad2deg(fovy_rad), self.width / float(self.height), 0.0001, 1000)
 
     def create_scene(self):
 
@@ -328,6 +332,7 @@ class Master(app.Canvas):
         self.ground_program.bind(vbo_ground)
         self.ground_program['u_fish'] = [self.cam_x,self.cam_y,self.cam_z]
         self.ground_program['u_texture'] = texture
+        self.ground_program['a_instance_shift'] = [0,0,0]
         self.ground_program['u_resolution'] = [self.width, self.height]
         self.ground_program['u_view'] = self.view
         self.ground_program['u_model'] = GROUND_MODEL
@@ -337,7 +342,8 @@ class Master(app.Canvas):
         self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
 
         ## shell -----------------------------------------------------------------------------
-        
+        # TODO instance rendering add other shells 
+
         # load texture
         texture = np.flipud(imread('quartz.jpg'))
 
@@ -355,6 +361,7 @@ class Master(app.Canvas):
         vertex['a_normal'] = normals
         vbo_shell = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(faces)
+        instance_shift = gloo.VertexBuffer([(-10,-2,0),(-5,-10,0),(0,0,0),(5,-1,0)], divisor=1)
 
         self.shadowmap_program = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
         self.shadowmap_program.bind(vbo_shell)
@@ -363,8 +370,9 @@ class Master(app.Canvas):
 
         self.main_program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.main_program.bind(vbo_shell)
-        self.main_program['u_fish'] = [self.cam_x,self.cam_y,self.cam_z]
         self.main_program['u_texture'] = texture
+        self.main_program['u_fish'] = [self.cam_x,self.cam_y,self.cam_z]
+        self.main_program['a_instance_shift'] = instance_shift
         self.main_program['u_resolution'] = [self.width, self.height]
         self.main_program['u_view'] = self.view
         self.main_program['u_model'] = SHELL_MODEL
@@ -398,7 +406,7 @@ class Master(app.Canvas):
             ty = -1
 
         self.cam_x += tx
-        #self.cam_y += ty
+        self.cam_y += ty
         self.cam_z += tz
 
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z))
@@ -406,6 +414,10 @@ class Master(app.Canvas):
         self.ground_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
         self.main_program['u_view'] = self.view
         self.main_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
+
+        self.create_projection()
+        self.ground_program['u_projection'] = self.projection
+        self.main_program['u_projection'] = self.projection
 
     def on_timer(self, event):
 
@@ -447,8 +459,8 @@ if __name__ == '__main__':
     screen_width_cm = 61.16
     screen_height_cm = 40.01 
     screen_bottomleft_x = -screen_width_cm/2
-    screen_bottomleft_y = 0
-    screen_bottomleft_z = 0 # screen 
+    screen_bottomleft_y = -screen_height_cm/2
+    screen_bottomleft_z = 0 
 
     master = Master(
         screen_width_cm,
