@@ -433,7 +433,7 @@ class Slave(app.Canvas):
         ]
         vertex = np.zeros(vertices.shape[0], dtype=vtype)
         vertex['a_position'] = vertices['position']
-        vertex['a_texcoord']  = vertices['texcoord']
+        vertex['a_texcoord']  = vertices['texcoord']*10
         vertex['a_normal'] = vertices['normal']
         vbo_ground = gloo.VertexBuffer(vertex)
         self.ground_indices = gloo.IndexBuffer(faces)
@@ -448,7 +448,7 @@ class Slave(app.Canvas):
         self.ground_program['u_master'] = 0
         self.ground_program['u_fish'] = [0,0,0]
         self.ground_program['u_cylinder_radius'] = radius_mm
-        self.ground_program['u_texture'] = texture
+        self.ground_program['u_texture'] =  gloo.Texture2D(texture, wrapping='repeat')
         self.ground_program['u_resolution'] = [self.width, self.height]
         self.ground_program['u_view'] = self.view
         self.ground_program['u_model'] = GROUND_MODEL
@@ -633,7 +633,7 @@ class Master(app.Canvas):
         ]
         vertex = np.zeros(vertices.shape[0], dtype=vtype)
         vertex['a_position'] = vertices['position']
-        vertex['a_texcoord']  = vertices['texcoord']
+        vertex['a_texcoord']  = vertices['texcoord']*10
         vertex['a_normal'] = vertices['normal']
         vbo_ground = gloo.VertexBuffer(vertex)
         self.ground_indices = gloo.IndexBuffer(faces)
@@ -648,7 +648,7 @@ class Master(app.Canvas):
         self.ground_program['u_master'] = 1
         self.ground_program['u_fish'] = [self.cam_x,self.cam_y,self.cam_z]
         self.ground_program['u_cylinder_radius'] = radius_mm
-        self.ground_program['u_texture'] = texture
+        self.ground_program['u_texture'] = gloo.Texture2D(texture, wrapping='repeat')
         self.ground_program['u_resolution'] = [self.width, self.height]
         self.ground_program['u_view'] = self.view
         self.ground_program['u_model'] = GROUND_MODEL
