@@ -85,7 +85,6 @@ uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform mat4 u_lightspace;
-
 uniform vec3 u_fish;
 uniform float u_cylinder_radius;
 uniform float u_master;

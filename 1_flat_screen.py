@@ -37,7 +37,7 @@ def lookAt(eye, target, up=[0, 1, 0]):
 use(gl='gl+')
 
 VERT_SHADER = """
-#version 150
+#version 140
   
 // uniforms
 uniform mat4 u_model;
@@ -55,12 +55,11 @@ attribute vec3 a_normal;
 attribute vec3 a_instance_shift;
 
 // varying
+varying float v_depth;
 varying vec2 v_texcoord;
 varying vec3 v_normal_world;
-varying vec3 v_view_position;
 varying vec4 v_world_position;
 varying vec4 v_lightspace_position;
-varying float v_depth;
 
 vec3 plane_proj(vec3 fish_pos, vec3 vertex_pos, vec3 screen_bottomleft, vec3 screen_normal) { 
 
@@ -93,17 +92,17 @@ vec3 plane_proj(vec3 fish_pos, vec3 vertex_pos, vec3 screen_bottomleft, vec3 scr
 
 void main()
 {
-    vec4 vertex_world = u_model * vec4(a_position + a_instance_shift, 1.0);
+    vec4 vertex_world = u_model * vec4(a_position, 1.0);
+    vertex_world.xyz = vertex_world.xyz + a_instance_shift;  
     vec3 screen_world = plane_proj(u_fish, vertex_world.xyz, u_screen_bottomleft, u_screen_normal);
     vec3 normal_world = transpose(inverse(mat3(u_model))) * a_normal;
     vec4 screen_clip = u_projection * u_view * vec4(screen_world, 1.0);
 
-    vec3 viewpoint_world = vec3(inverse(u_view)[3]);
     float magnitude = length(vertex_world.xyz - u_fish);
-    vec3 direction = normalize(screen_world-viewpoint_world);
-    float orientation = sign(dot(vertex_world.xyz-u_fish, screen_world-u_fish));
+    vec3 direction = normalize(screen_world - u_fish);
+    float orientation = sign(dot(vertex_world.xyz - u_fish, screen_world - u_fish));
 
-    vec3 offset_world = viewpoint_world;
+    vec3 offset_world = u_fish;
     offset_world += orientation*direction * magnitude;
     vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
 
@@ -117,7 +116,7 @@ void main()
 """
 
 FRAG_SHADER = """
-#version 150
+#version 140
 
 uniform sampler2D u_texture;
 uniform sampler2D u_shadow_map_texture;
@@ -227,6 +226,8 @@ void main()
 """
 
 VERTEX_SHADER_SHADOW="""
+#version 140
+
 uniform mat4 u_model;
 uniform mat4 u_lightspace;
 
@@ -237,11 +238,15 @@ attribute vec3 a_instance_shift;
 
 void main()
 {
-    gl_Position = u_lightspace * u_model * vec4(a_position+a_instance_shift, 1.0);
+    vec4 world_pos = u_model * vec4(a_position, 1.0);
+    world_pos.xyz = world_pos.xyz + a_instance_shift;
+    gl_Position = u_lightspace * world_pos;
 }
 """
 
 FRAGMENT_SHADER_SHADOW="""
+#version 140
+
 void main()
 {
     float depth = gl_FragCoord.z;
@@ -330,7 +335,7 @@ class Master(app.Canvas):
         light_position =  [5,5,5]
         light_projection = ortho(-10,10,-10,10,0.01,20)
         light_view = lookAt(light_position, [0,0,0], [0,0,1])
-        lightspace = light_view.dot(light_projection)
+        lightspace = light_view @ light_projection # this feels like it's the wrong order
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
@@ -356,7 +361,7 @@ class Master(app.Canvas):
         ]
         vertex = np.zeros(vertices.shape[0], dtype=vtype)
         vertex['a_position'] = vertices['position']
-        vertex['a_texcoord'] = vertices['texcoord']
+        vertex['a_texcoord'] = vertices['texcoord']*2
         vertex['a_normal'] = vertices['normal']
         vbo_ground = gloo.VertexBuffer(vertex)
         self.ground_indices = gloo.IndexBuffer(faces)
@@ -401,13 +406,13 @@ class Master(app.Canvas):
         vertex['a_normal'] = normals
         vbo_shell = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(faces)
-        instance_shift = gloo.VertexBuffer([(-10,-2,0),(-5,-10,0),(0,0,0),(5,-1,5)], divisor=1)
+        instance_shift = gloo.VertexBuffer([(10,0,-2),(0,0,-10),(0,0,0),(-5,5,-1)], divisor=1)
 
         self.shadowmap_program = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
         self.shadowmap_program.bind(vbo_shell)
         self.shadowmap_program['u_model'] = SHELL_MODEL
         self.shadowmap_program['u_lightspace'] = lightspace
-        self.shadowmap_program['a_instance_shift'] = instance_shift
+        #self.shadowmap_program['a_instance_shift'] = instance_shift
 
         self.main_program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.main_program.bind(vbo_shell)
@@ -463,15 +468,19 @@ class Master(app.Canvas):
         self.main_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
         self.main_program['u_projection'] = self.projection
 
+    def on_resize(self, event):
+        width, height = event.size
+        gloo.set_viewport(0, 0, width, height)
+
     def on_timer(self, event):
 
         self.t += self.t_step
         self.light_theta += self.light_theta_step
 
-        light_position =  [5*np.cos(self.light_theta),np.sin(self.t)+2,5*np.sin(self.light_theta)]
-        light_projection = ortho(-1,1,-1,1,1,8)
-        light_view = lookAt(light_position, [0,0.6,0], [0,1,0])
-        lightspace = light_view.dot(light_projection)
+        light_position =  [5*np.cos(self.light_theta),20,5*np.sin(self.light_theta)]
+        light_projection = ortho(-100,100,-100,100,5,30)
+        light_view = lookAt(light_position, [0,0,0], [0,1,0])
+        lightspace = light_view @ light_projection # this feels like it's the wrong order
 
         self.shadowmap_ground['u_lightspace'] = lightspace
         self.shadowmap_program['u_lightspace'] = lightspace
