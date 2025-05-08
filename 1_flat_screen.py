@@ -14,25 +14,23 @@ def lookAt(eye, target, up=[0, 1, 0]):
     target = np.asarray(target).astype(np.float32)
     up = np.asarray(up).astype(np.float32)
 
-    vforward = eye - target
-    vforward /= np.linalg.norm(vforward)
+    forward = target - eye
+    forward /= np.linalg.norm(forward)
 
-    # if up and vforward vectors are collinear, choose a fallback vector
-    up_normalized = up / np.linalg.norm(up)
-    if abs(np.dot(up_normalized, vforward)) > 0.9999:
-        up = np.zeros(3, dtype=np.float32)
-        up[np.argmin(abs(vforward))] = 1
+    side = np.cross(forward, up)
+    side /= np.linalg.norm(side)
 
-    vright = np.cross(up, vforward)
-    vright /= np.linalg.norm(vright)
-    vup = np.cross(vforward, vright)
+    up = np.cross(side, forward)
 
-    view = np.r_[vright, -np.dot(vright, eye),
-                 vup, -np.dot(vup, eye),
-                 vforward, -np.dot(vforward, eye),
-                 [0, 0, 0, 1]].reshape(4, 4, order='F')
-
-    return view
+    M = np.eye(4)
+    M[0,:3] = side
+    M[1,:3] = up
+    M[2,:3] = -forward
+    M[0,3] = -np.dot(side, eye)
+    M[1,3] = -np.dot(up, eye)
+    M[2,3] = np.dot(forward, eye)
+    
+    return M
 
 use(gl='gl+')
 
@@ -132,7 +130,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position,  vec3 norm, vec3 light_direction)
 {
-    float bias = mix(0.003, 0.0, dot(norm, light_direction));    
+    float bias = mix(0.05, 0.0, dot(norm, light_direction));    
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -215,10 +213,10 @@ void main()
     gamma_corrected.rgb = pow(gamma_corrected.rgb, vec3(1.0/gamma));
     
     // output
-    //vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
-    //position_ndc = position_ndc * 0.5 + 0.5;
-    //float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
-    //gl_FragColor = vec4(vec3(closest_depth), 1.0);
+    vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
+    position_ndc = position_ndc * 0.5 + 0.5;
+    float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
+    gl_FragColor = vec4(vec3(closest_depth), 1.0);
 
     gl_FragColor = gamma_corrected;
     gl_FragDepth = v_depth;
@@ -328,14 +326,15 @@ class Master(app.Canvas):
         zfar = 1000
         scale = znear/abs(depth)
         
-        self.projection = frustum(scale*left,scale*right,scale*bottom,scale*top,znear,zfar)
+        self.projection = frustum(scale*left, scale*right, scale*bottom, scale*top, znear, zfar)
 
     def create_scene(self):
 
-        light_position =  [5,5,5]
-        light_projection = ortho(-10,10,-10,10,0.01,20)
-        light_view = lookAt(light_position, [0,0,0], [0,0,1])
-        lightspace = light_view @ light_projection # this feels like it's the wrong order
+        light_position = [5,5,5]
+        light_projection = ortho(-50,50,-50,50,1,30)
+        light_view = lookAt(light_position, [0,0,0], [0,1,0])
+        lightspace = light_projection.T @ light_view    
+        lightspace = lightspace.T
 
         # set up shadow map buffer
         self.shadow_map_texture = gloo.Texture2D(
@@ -353,7 +352,7 @@ class Master(app.Canvas):
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
 
-        vertices, faces, _ = create_box(width=20, height=20, depth=1, height_segments=100, width_segments=100, depth_segments=10)
+        vertices, faces, _ = create_box(width=30, height=30, depth=1, height_segments=100, width_segments=100, depth_segments=10)
         vtype = [
             ('a_position', np.float32, 3),
             ('a_texcoord', np.float32, 2),
@@ -412,7 +411,7 @@ class Master(app.Canvas):
         self.shadowmap_program.bind(vbo_shell)
         self.shadowmap_program['u_model'] = SHELL_MODEL
         self.shadowmap_program['u_lightspace'] = lightspace
-        #self.shadowmap_program['a_instance_shift'] = instance_shift
+        self.shadowmap_program['a_instance_shift'] = instance_shift
 
         self.main_program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.main_program.bind(vbo_shell)
@@ -477,10 +476,11 @@ class Master(app.Canvas):
         self.t += self.t_step
         self.light_theta += self.light_theta_step
 
-        light_position =  [5*np.cos(self.light_theta),20,5*np.sin(self.light_theta)]
-        light_projection = ortho(-100,100,-100,100,5,30)
+        light_position =  [5*np.cos(self.light_theta), 20, 5*np.sin(self.light_theta)]
+        light_projection = ortho(-100,100,-100,100,10,25)
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
-        lightspace = light_view @ light_projection # this feels like it's the wrong order
+        lightspace = light_projection.T @ light_view
+        lightspace = lightspace.T
 
         self.shadowmap_ground['u_lightspace'] = lightspace
         self.shadowmap_program['u_lightspace'] = lightspace
