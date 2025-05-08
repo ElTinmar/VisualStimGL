@@ -99,7 +99,6 @@ attribute vec3 a_normal;
 varying float v_depth;
 varying vec2 v_texcoord;
 varying vec3 v_normal_world;
-varying vec3 v_view_position;
 varying vec4 v_world_position;
 varying vec4 v_lightspace_position;
 
@@ -172,7 +171,6 @@ void main()
     v_depth = offset_clip.z/offset_clip.w;
     v_texcoord = a_texcoord;
     v_normal_world = normal_world;
-    v_view_position = viewpoint_world;
     v_world_position = vertex_world;
     v_lightspace_position = u_lightspace * vertex_world;
     gl_Position = screen_clip;
@@ -196,7 +194,6 @@ uniform float u_master;
 varying vec3 v_normal_world;
 varying vec2 v_texcoord;
 varying float v_depth;
-varying vec3 v_view_position;
 varying vec4 v_world_position;
 varying vec4 v_lightspace_position;
 
@@ -297,10 +294,10 @@ void main()
     };
     
     // output
-    vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
-    position_ndc = position_ndc * 0.5 + 0.5;
-    float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
-    gl_FragColor = vec4(vec3(closest_depth), 1.0);
+    //vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
+    //position_ndc = position_ndc * 0.5 + 0.5;
+    //float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
+    //gl_FragColor = vec4(vec3(closest_depth), 1.0);
 
     gl_FragColor = final;
     gl_FragDepth = v_depth;

@@ -45,6 +45,8 @@ uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform mat4 u_lightspace;
 uniform vec3 u_fish;
+uniform vec3 u_screen_bottomleft;
+uniform vec3 u_screen_normal;
 
 // per-vertex attributes
 attribute vec3 a_position;
@@ -58,20 +60,59 @@ varying vec3 v_normal_world;
 varying vec3 v_view_position;
 varying vec4 v_world_position;
 varying vec4 v_lightspace_position;
+varying float v_depth;
+
+vec3 plane_proj(vec3 fish_pos, vec3 vertex_pos, vec3 screen_bottomleft, vec3 screen_normal) { 
+
+    // vertex coords
+    float x_v = vertex_pos.x;
+    float y_v = vertex_pos.y;
+    float z_v = vertex_pos.z;
+
+    // fish coords
+    float x_f = fish_pos.x;
+    float y_f = fish_pos.y;
+    float z_f = fish_pos.z;
+
+    // plane
+    float a = screen_normal.x;
+    float b = screen_normal.y;
+    float c = screen_normal.z;
+    float d = -dot(screen_normal, screen_bottomleft);
+
+    float denominator = dot(screen_normal, fish_pos-vertex_pos);
+    // TODO handle degenerate case?
+
+    float x = b*(x_v*y_f - x_f*y_v) + c*(x_v*z_f - x_f*z_v) + d*(x_v-x_f) / denominator;
+    float y = a*(y_v*x_f - y_f*x_v) + c*(y_v*z_f - y_f*z_v) + d*(y_v-y_f) / denominator;
+    float z = a*(z_v*x_f - z_f*x_v) + b*(z_v*y_f - z_f*y_v) + d*(z_v-z_f) / denominator;
+
+    vec3 sol = vec3(x, y, z);
+    return sol;
+}
 
 void main()
 {
-    vec4 vertex_world = u_model * vec4(a_position + a_instance_shift, 1.0);
+    vec4 vertex_world = u_model * vec4(a_position, 1.0);
+    vec3 screen_world = plane_proj(u_fish, vertex_world.xyz, u_screen_bottomleft, u_screen_normal);
     vec3 normal_world = transpose(inverse(mat3(u_model))) * a_normal;
-    vec3 viewpoint_world = vec3(inverse(u_view)[3]);
-    vec4 vertex_clip = u_projection * u_view * vertex_world;
+    vec4 screen_clip = u_projection * u_view * vec4(screen_world, 1.0);
 
+    vec3 viewpoint_world = vec3(inverse(u_view)[3]);
+    float magnitude = length(vertex_world.xyz - u_fish)/length(screen_world - u_fish);
+    vec3 direction = normalize(screen_world-viewpoint_world);
+    float orientation = sign(dot(direction.xz, screen_world.xz));
+
+    vec3 offset_world = viewpoint_world;
+    offset_world += orientation * direction * magnitude;
+    vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
+
+    v_depth = offset_clip.z/offset_clip.w;
     v_texcoord = a_texcoord;
     v_normal_world = normal_world;
-    v_view_position = viewpoint_world;
     v_world_position = vertex_world;
     v_lightspace_position = u_lightspace * vertex_world;
-    gl_Position = vertex_clip;
+    gl_Position = screen_clip;
 }
 """
 
@@ -86,7 +127,7 @@ uniform vec3 u_fish;
 
 varying vec3 v_normal_world;
 varying vec2 v_texcoord;
-varying vec3 v_view_position;
+varying float v_depth;
 varying vec4 v_world_position;
 varying vec4 v_lightspace_position;
 
@@ -175,12 +216,13 @@ void main()
     gamma_corrected.rgb = pow(gamma_corrected.rgb, vec3(1.0/gamma));
     
     // output
-    vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
-    position_ndc = position_ndc * 0.5 + 0.5;
-    float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
-    gl_FragColor = vec4(vec3(closest_depth), 1.0);
+    //vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
+    //position_ndc = position_ndc * 0.5 + 0.5;
+    //float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
+    //gl_FragColor = vec4(vec3(closest_depth), 1.0);
 
     gl_FragColor = gamma_corrected;
+    gl_FragDepth = v_depth;
 }
 """
 
@@ -215,9 +257,8 @@ class Master(app.Canvas):
             self,
             screen_width_cm: float,
             screen_height_cm: float,
-            screen_bottomleft_x: float,
-            screen_bottomleft_y: float,
-            screen_bottomleft_z: float
+            screen_bottomleft: Tuple,
+            screen_normal: Tuple
         ):
 
         app.Canvas.__init__(
@@ -230,9 +271,10 @@ class Master(app.Canvas):
 
         self.screen_width_cm = screen_width_cm 
         self.screen_height_cm = screen_height_cm
-        self.screen_bottomleft_x = screen_bottomleft_x
-        self.screen_bottomleft_y = screen_bottomleft_y
-        self.screen_bottomleft_z = screen_bottomleft_z
+        self.screen_bottomleft = screen_bottomleft
+        self.screen_normal = screen_normal
+        self.screen_bottomleft_x, self.screen_bottomleft_y, self.screen_bottomleft_z = screen_bottomleft
+
 
         # rotation and translation gain
         self.step_t = 0.5
@@ -276,16 +318,8 @@ class Master(app.Canvas):
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z))
 
     def create_projection(self):
-        left = self.screen_bottomleft_x-self.cam_x
-        right = left + self.screen_width_cm
-        bottom = self.screen_bottomleft_y-self.cam_y
-        top = bottom + self.screen_height_cm
-        far = self.near + self.frustum_depth
-        scale = self.near/abs(self.screen_bottomleft_z-self.cam_z)
-        #self.projection = frustum(left*scale,right*scale,bottom*scale,top*scale,self.near,far)
-
-        fovy_rad = 2*np.arctan2(top, abs(self.screen_bottomleft_z-self.cam_z))
-        self.projection = perspective(np.rad2deg(fovy_rad), self.width / float(self.height), 0.0001, 1000)
+        fovy = 90
+        self.projection = perspective(fovy, self.width / float(self.height), 0.0001, 1000)
 
     def create_scene(self):
 
@@ -340,6 +374,8 @@ class Master(app.Canvas):
         self.ground_program['u_lightspace'] = lightspace
         self.ground_program['u_light_position'] = light_position
         self.ground_program['u_shadow_map_texture'] = self.shadow_map_texture
+        self.ground_program['u_screen_normal'] = self.screen_normal
+        self.ground_program['u_screen_bottomleft'] = self.screen_bottomleft
 
         ## shell -----------------------------------------------------------------------------
         # TODO instance rendering add other shells 
@@ -380,6 +416,8 @@ class Master(app.Canvas):
         self.main_program['u_lightspace'] = lightspace
         self.main_program['u_light_position'] = light_position
         self.main_program['u_shadow_map_texture'] = self.shadow_map_texture
+        self.main_program['u_screen_normal'] = self.screen_normal
+        self.main_program['u_screen_bottomleft'] = self.screen_bottomleft
 
     def on_key_press(self, event):
 
@@ -458,16 +496,14 @@ if __name__ == '__main__':
 
     screen_width_cm = 61.16
     screen_height_cm = 40.01 
-    screen_bottomleft_x = -screen_width_cm/2
-    screen_bottomleft_y = -screen_height_cm/2
-    screen_bottomleft_z = 0 
+    screen_bottomleft = (-screen_width_cm/2, -screen_height_cm/2, 0)
+    screen_normal = (0,0,1)
 
     master = Master(
         screen_width_cm,
         screen_height_cm,
-        screen_bottomleft_x,
-        screen_bottomleft_y,
-        screen_bottomleft_z
+        screen_bottomleft,
+        screen_normal
     )
 
     if sys.flags.interactive != 1:
