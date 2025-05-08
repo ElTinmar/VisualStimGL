@@ -83,9 +83,9 @@ vec3 plane_proj(vec3 fish_pos, vec3 vertex_pos, vec3 screen_bottomleft, vec3 scr
     float denominator = dot(screen_normal, fish_pos-vertex_pos);
     // TODO handle degenerate case?
 
-    float x = b*(x_v*y_f - x_f*y_v) + c*(x_v*z_f - x_f*z_v) + d*(x_v-x_f) / denominator;
-    float y = a*(y_v*x_f - y_f*x_v) + c*(y_v*z_f - y_f*z_v) + d*(y_v-y_f) / denominator;
-    float z = a*(z_v*x_f - z_f*x_v) + b*(z_v*y_f - z_f*y_v) + d*(z_v-z_f) / denominator;
+    float x = (b*(x_v*y_f - x_f*y_v) + c*(x_v*z_f - x_f*z_v) + d*(x_v-x_f)) / denominator;
+    float y = (a*(y_v*x_f - y_f*x_v) + c*(y_v*z_f - y_f*z_v) + d*(y_v-y_f)) / denominator;
+    float z = (a*(z_v*x_f - z_f*x_v) + b*(z_v*y_f - z_f*y_v) + d*(z_v-z_f)) / denominator;
 
     vec3 sol = vec3(x, y, z);
     return sol;
@@ -93,18 +93,18 @@ vec3 plane_proj(vec3 fish_pos, vec3 vertex_pos, vec3 screen_bottomleft, vec3 scr
 
 void main()
 {
-    vec4 vertex_world = u_model * vec4(a_position, 1.0);
+    vec4 vertex_world = u_model * vec4(a_position + a_instance_shift, 1.0);
     vec3 screen_world = plane_proj(u_fish, vertex_world.xyz, u_screen_bottomleft, u_screen_normal);
     vec3 normal_world = transpose(inverse(mat3(u_model))) * a_normal;
     vec4 screen_clip = u_projection * u_view * vec4(screen_world, 1.0);
 
     vec3 viewpoint_world = vec3(inverse(u_view)[3]);
-    float magnitude = length(vertex_world.xyz - u_fish)/length(screen_world - u_fish);
+    float magnitude = length(vertex_world.xyz - u_fish);
     vec3 direction = normalize(screen_world-viewpoint_world);
     float orientation = sign(dot(direction.xz, screen_world.xz));
 
     vec3 offset_world = viewpoint_world;
-    offset_world += orientation * direction * magnitude;
+    offset_world += direction * magnitude;
     vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
 
     v_depth = offset_clip.z/offset_clip.w;
@@ -233,10 +233,11 @@ uniform mat4 u_lightspace;
 attribute vec3 a_position;
 attribute vec2 a_texcoord;
 attribute vec3 a_normal;
+attribute vec3 a_instance_shift;
 
 void main()
 {
-    gl_Position = u_lightspace * u_model * vec4(a_position, 1.0);
+    gl_Position = u_lightspace * u_model * vec4(a_position+a_instance_shift, 1.0);
 }
 """
 
@@ -275,7 +276,6 @@ class Master(app.Canvas):
         self.screen_normal = screen_normal
         self.screen_bottomleft_x, self.screen_bottomleft_y, self.screen_bottomleft_z = screen_bottomleft
 
-
         # rotation and translation gain
         self.step_t = 0.5
         self.step_t_fast = 2
@@ -285,10 +285,6 @@ class Master(app.Canvas):
         self.cam_x = 0
         self.cam_y = 1
         self.cam_z = 20
-
-        # frustum
-        self.near = 0.1
-        self.frustum_depth = 1000
 
         # store last mouse position
         self.last_mouse_pos = None
@@ -318,8 +314,16 @@ class Master(app.Canvas):
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z))
 
     def create_projection(self):
-        fovy = 90
-        self.projection = perspective(fovy, self.width / float(self.height), 0.0001, 1000)
+        left = self.screen_bottomleft_x-self.cam_x
+        bottom = self.screen_bottomleft_y-self.cam_y
+        depth = self.screen_bottomleft_z-self.cam_z
+        right = left + self.screen_width_cm
+        top = bottom + self.screen_height_cm
+        znear = 0.1
+        zfar = 1000
+        scale = znear/abs(depth)
+        
+        self.projection = frustum(scale*left,scale*right,scale*bottom,scale*top,znear,zfar)
 
     def create_scene(self):
 
@@ -361,6 +365,7 @@ class Master(app.Canvas):
         self.shadowmap_ground.bind(vbo_ground)
         self.shadowmap_ground['u_model'] = GROUND_MODEL
         self.shadowmap_ground['u_lightspace'] = lightspace
+        self.shadowmap_ground['a_instance_shift'] = [0,0,0]
         
         self.ground_program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.ground_program.bind(vbo_ground)
@@ -403,6 +408,7 @@ class Master(app.Canvas):
         self.shadowmap_program.bind(vbo_shell)
         self.shadowmap_program['u_model'] = SHELL_MODEL
         self.shadowmap_program['u_lightspace'] = lightspace
+        self.shadowmap_program['a_instance_shift'] = instance_shift
 
         self.main_program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.main_program.bind(vbo_shell)
@@ -494,8 +500,8 @@ class Master(app.Canvas):
 
 if __name__ == '__main__':
 
-    screen_width_cm = 61.16
-    screen_height_cm = 40.01 
+    screen_width_cm = 27
+    screen_height_cm = 17 
     screen_bottomleft = (-screen_width_cm/2, -screen_height_cm/2, 0)
     screen_normal = (0,0,1)
 

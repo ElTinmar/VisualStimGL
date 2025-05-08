@@ -1,3 +1,6 @@
+
+## Cylinder 
+
 from sympy import solve, symbols, init_printing
 
 init_printing()
@@ -19,6 +22,7 @@ solutions = solve(equations, [x,y,z], dict=True)
 solutions[0][x]
 solutions[1][x]
 
+# test
 import numpy as np
 
 x_v = -2
@@ -52,6 +56,7 @@ np.dot(sol1-fish,vertex-fish)
 ### Plane equation
 
 from sympy import solve, symbols, init_printing
+import numpy as np
 
 init_printing()
 
@@ -68,4 +73,20 @@ equations = [
     (x - x_f)/(x_v -x_f) - (z - z_f)/(z_v - z_f), # on straight line between vertex and fish
     a*x + b*y + c*z + d # on plane
 ]
-solutions = solve(equations, [x,y,z], dict=True)
+solution = solve(equations, [x,y,z], dict=True)
+
+# test
+
+vertex_pos = np.array((5,10,-5)) 
+fish_pos = np.array((0,0,20))    
+screen_normal = np.array((0,0,1))
+denominator = np.dot(screen_normal, fish_pos-vertex_pos)
+
+x_v, y_v, z_v = vertex_pos
+x_f, y_f, z_f = fish_pos
+a, b, c = screen_normal
+d = 0
+
+x = (b*(x_v*y_f - x_f*y_v) + c*(x_v*z_f - x_f*z_v) + d*(x_v-x_f)) / denominator
+y = (a*(y_v*x_f - y_f*x_v) + c*(y_v*z_f - y_f*z_v) + d*(y_v-y_f)) / denominator
+z = (a*(z_v*x_f - z_f*x_v) + b*(z_v*y_f - z_f*y_v) + d*(z_v-z_f)) / denominator
