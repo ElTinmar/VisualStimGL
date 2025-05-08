@@ -47,3 +47,25 @@ vertex = np.array([x_v,y_v,z_v])
 
 np.dot(sol0-fish,vertex-fish)
 np.dot(sol1-fish,vertex-fish)
+
+
+### Plane equation
+
+from sympy import solve, symbols, init_printing
+
+init_printing()
+
+x, y, z = symbols('x, y, z')
+a,b,c,d = symbols('a, b, c, d', constant=True)
+x_v, y_v, z_v = symbols('x_v, y_v, z_v', constant=True)
+x_f, y_f, z_f = symbols('x_f, y_f, z_f', constant=True)
+
+# intersect straight line between fish (x,y,z) and each vertex with
+# intersect straight line between fish (x,y,z) and each vertex with cylinder.
+# need two equations for the straight line, and one for the cylinder
+equations = [
+    (x - x_f)/(x_v -x_f) - (y - y_f)/(y_v - y_f), # on straight line between vertex and fish
+    (x - x_f)/(x_v -x_f) - (z - z_f)/(z_v - z_f), # on straight line between vertex and fish
+    a*x + b*y + c*z + d # on plane
+]
+solutions = solve(equations, [x,y,z], dict=True)
