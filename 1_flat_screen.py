@@ -101,10 +101,10 @@ void main()
     vec3 viewpoint_world = vec3(inverse(u_view)[3]);
     float magnitude = length(vertex_world.xyz - u_fish);
     vec3 direction = normalize(screen_world-viewpoint_world);
-    float orientation = sign(dot(direction.xz, screen_world.xz));
+    float orientation = sign(dot(vertex_world.xyz-u_fish, screen_world-u_fish));
 
     vec3 offset_world = viewpoint_world;
-    offset_world += direction * magnitude;
+    offset_world += orientation*direction * magnitude;
     vec4 offset_clip = u_projection * u_view * vec4(offset_world, 1.0);
 
     v_depth = offset_clip.z/offset_clip.w;
@@ -348,7 +348,7 @@ class Master(app.Canvas):
         # load texture
         texture = np.flipud(imread('sand.jpeg'))
 
-        vertices, faces, _ = create_box(width=100, height=100, depth=1, height_segments=100, width_segments=100, depth_segments=10)
+        vertices, faces, _ = create_box(width=20, height=20, depth=1, height_segments=100, width_segments=100, depth_segments=10)
         vtype = [
             ('a_position', np.float32, 3),
             ('a_texcoord', np.float32, 2),
@@ -356,7 +356,7 @@ class Master(app.Canvas):
         ]
         vertex = np.zeros(vertices.shape[0], dtype=vtype)
         vertex['a_position'] = vertices['position']
-        vertex['a_texcoord']  = vertices['texcoord']
+        vertex['a_texcoord'] = vertices['texcoord']*20
         vertex['a_normal'] = vertices['normal']
         vbo_ground = gloo.VertexBuffer(vertex)
         self.ground_indices = gloo.IndexBuffer(faces)
@@ -370,7 +370,7 @@ class Master(app.Canvas):
         self.ground_program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.ground_program.bind(vbo_ground)
         self.ground_program['u_fish'] = [self.cam_x,self.cam_y,self.cam_z]
-        self.ground_program['u_texture'] = texture
+        self.ground_program['u_texture'] = gloo.Texture2D(texture, interpolation='linear', wrapping='repeat')
         self.ground_program['a_instance_shift'] = [0,0,0]
         self.ground_program['u_resolution'] = [self.width, self.height]
         self.ground_program['u_view'] = self.view
@@ -402,7 +402,7 @@ class Master(app.Canvas):
         vertex['a_normal'] = normals
         vbo_shell = gloo.VertexBuffer(vertex)
         self.indices = gloo.IndexBuffer(faces)
-        instance_shift = gloo.VertexBuffer([(-10,-2,0),(-5,-10,0),(0,0,0),(5,-1,0)], divisor=1)
+        instance_shift = gloo.VertexBuffer([(-10,-2,0),(-5,-10,0),(0,0,0),(5,-1,5)], divisor=1)
 
         self.shadowmap_program = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
         self.shadowmap_program.bind(vbo_shell)
@@ -437,30 +437,30 @@ class Master(app.Canvas):
             step = self.step_t
 
         if event.key == 'W':
-            tz = -1
+            tz = -step
         elif event.key == 'A':
-            tx = -1
+            tx = -step
         elif event.key == 'S':
-            tz = 1
+            tz = step
         elif event.key == 'D':
-            tx = 1
+            tx = step
         elif event.key == 'Up':
-            ty = 1
+            ty = step
         elif event.key == 'Down':
-            ty = -1
+            ty = -step
 
         self.cam_x += tx
         self.cam_y += ty
         self.cam_z += tz
 
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z))
+        self.create_projection()
         self.ground_program['u_view'] = self.view
         self.ground_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
+        self.ground_program['u_projection'] = self.projection
+
         self.main_program['u_view'] = self.view
         self.main_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
-
-        self.create_projection()
-        self.ground_program['u_projection'] = self.projection
         self.main_program['u_projection'] = self.projection
 
     def on_timer(self, event):
