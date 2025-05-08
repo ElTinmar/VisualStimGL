@@ -130,7 +130,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position,  vec3 norm, vec3 light_direction)
 {
-    float bias = mix(0.05, 0.0, dot(norm, light_direction));    
+    float bias = mix(0.005, 0.0, dot(norm, light_direction));    
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
@@ -254,7 +254,7 @@ void main()
 
 SHELL_MODEL = rotate(90,(1,0,0)).dot(rotate(180,(0,0,1))).dot(translate((0,0.6,0)))
 GROUND_MODEL = translate((0,0,0))
-SHADOWMAP_RES = 2048
+SHADOWMAP_RES = 4096
 
 class Master(app.Canvas):
     def __init__(
@@ -476,8 +476,8 @@ class Master(app.Canvas):
         self.t += self.t_step
         self.light_theta += self.light_theta_step
 
-        light_position =  [5*np.cos(self.light_theta), 20, 5*np.sin(self.light_theta)]
-        light_projection = ortho(-100,100,-100,100,10,25)
+        light_position =  [10*np.cos(self.light_theta), 20, 10*np.sin(self.light_theta)]
+        light_projection = ortho(-100,100,-100,100,1,40)
         light_view = lookAt(light_position, [0,0,0], [0,1,0])
         lightspace = light_projection.T @ light_view
         lightspace = lightspace.T
