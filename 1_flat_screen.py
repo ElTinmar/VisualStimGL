@@ -356,7 +356,7 @@ class Master(app.Canvas):
         ]
         vertex = np.zeros(vertices.shape[0], dtype=vtype)
         vertex['a_position'] = vertices['position']
-        vertex['a_texcoord'] = vertices['texcoord']*20
+        vertex['a_texcoord'] = vertices['texcoord']
         vertex['a_normal'] = vertices['normal']
         vbo_ground = gloo.VertexBuffer(vertex)
         self.ground_indices = gloo.IndexBuffer(faces)
@@ -370,7 +370,7 @@ class Master(app.Canvas):
         self.ground_program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.ground_program.bind(vbo_ground)
         self.ground_program['u_fish'] = [self.cam_x,self.cam_y,self.cam_z]
-        self.ground_program['u_texture'] = gloo.Texture2D(texture, interpolation='linear', wrapping='repeat')
+        self.ground_program['u_texture'] = gloo.Texture2D(texture, wrapping='repeat')
         self.ground_program['a_instance_shift'] = [0,0,0]
         self.ground_program['u_resolution'] = [self.width, self.height]
         self.ground_program['u_view'] = self.view
@@ -383,7 +383,6 @@ class Master(app.Canvas):
         self.ground_program['u_screen_bottomleft'] = self.screen_bottomleft
 
         ## shell -----------------------------------------------------------------------------
-        # TODO instance rendering add other shells 
 
         # load texture
         texture = np.flipud(imread('quartz.jpg'))
@@ -455,6 +454,7 @@ class Master(app.Canvas):
 
         self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z))
         self.create_projection()
+        
         self.ground_program['u_view'] = self.view
         self.ground_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
         self.ground_program['u_projection'] = self.projection
@@ -496,7 +496,6 @@ class Master(app.Canvas):
         self.ground_program.draw('triangles', self.ground_indices)
         self.main_program.draw('triangles', self.indices)
         self.update()
-
 
 if __name__ == '__main__':
 
