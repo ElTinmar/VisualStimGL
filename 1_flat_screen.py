@@ -50,6 +50,8 @@ uniform vec3 u_screen_normal;
 attribute vec3 a_position;
 attribute vec2 a_texcoord;
 attribute vec3 a_normal;
+
+// per-instance attribute
 attribute vec3 a_instance_shift;
 
 // varying
@@ -212,11 +214,14 @@ void main()
     vec4 gamma_corrected = phong_shading;
     gamma_corrected.rgb = pow(gamma_corrected.rgb, vec3(1.0/gamma));
     
-    // output
+    // debug shadow
     vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
     float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
     gl_FragColor = vec4(vec3(closest_depth), 1.0);
+
+    // debug texture
+    gl_FragColor = vec4(v_texcoord,0,1);
 
     gl_FragColor = gamma_corrected;
     gl_FragDepth = v_depth;
@@ -234,8 +239,11 @@ attribute vec2 a_texcoord;
 attribute vec3 a_normal;
 attribute vec3 a_instance_shift;
 
+varying vec2 v_texcoord;
+
 void main()
 {
+    v_texcoord = a_texcoord;
     vec4 world_pos = u_model * vec4(a_position, 1.0);
     world_pos.xyz = world_pos.xyz + a_instance_shift;
     gl_Position = u_lightspace * world_pos;
@@ -244,6 +252,7 @@ void main()
 
 FRAGMENT_SHADER_SHADOW="""
 #version 140
+varying vec2 v_texcoord;
 
 void main()
 {
@@ -362,20 +371,21 @@ class Master(app.Canvas):
         vertex['a_position'] = vertices['position']
         vertex['a_texcoord'] = vertices['texcoord']*2
         vertex['a_normal'] = vertices['normal']
-        vbo_ground = gloo.VertexBuffer(vertex)
+        vbo_ground = gloo.VertexBuffer(vertex, divisor=0)
         self.ground_indices = gloo.IndexBuffer(faces)
+        instance_shift = gloo.VertexBuffer(np.array([[0,0,0]], np.float32), divisor=1)
 
         self.shadowmap_ground = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
-        self.shadowmap_ground.bind(vbo_ground)
+        self.shadowmap_ground.bind(vbo_ground) 
         self.shadowmap_ground['u_model'] = GROUND_MODEL
         self.shadowmap_ground['u_lightspace'] = lightspace
-        self.shadowmap_ground['a_instance_shift'] = [0,0,0]
+        self.shadowmap_ground['a_instance_shift'] = instance_shift
         
         self.ground_program = gloo.Program(VERT_SHADER, FRAG_SHADER)
-        self.ground_program.bind(vbo_ground)
+        self.ground_program.bind(vbo_ground) 
         self.ground_program['u_fish'] = [self.cam_x,self.cam_y,self.cam_z]
         self.ground_program['u_texture'] = gloo.Texture2D(texture, wrapping='repeat')
-        self.ground_program['a_instance_shift'] = [0,0,0]
+        self.ground_program['a_instance_shift'] = instance_shift
         self.ground_program['u_resolution'] = [self.width, self.height]
         self.ground_program['u_view'] = self.view
         self.ground_program['u_model'] = GROUND_MODEL
@@ -401,11 +411,11 @@ class Master(app.Canvas):
         ]
         vertex = np.zeros(vertices.shape[0], dtype=vtype)
         vertex['a_position'] = vertices
-        vertex['a_texcoord']  = texcoords
+        vertex['a_texcoord'] = texcoords
         vertex['a_normal'] = normals
-        vbo_shell = gloo.VertexBuffer(vertex)
+        vbo_shell = gloo.VertexBuffer(vertex, divisor=0)
         self.indices = gloo.IndexBuffer(faces)
-        instance_shift = gloo.VertexBuffer([(10,0,-2),(0,0,-10),(0,0,0),(-5,5,-1)], divisor=1)
+        instance_shift = gloo.VertexBuffer(np.array([[10,0,-2],[0,0,-10],[0,0,0],[-5,5,-1]], dtype=np.float32), divisor=1)
 
         self.shadowmap_program = gloo.Program(VERTEX_SHADER_SHADOW, FRAGMENT_SHADER_SHADOW)
         self.shadowmap_program.bind(vbo_shell)
