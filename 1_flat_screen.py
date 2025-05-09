@@ -1,10 +1,10 @@
 import sys
 from vispy import gloo, app,  use 
 from vispy.geometry import create_box
-from vispy.util.transforms import perspective, translate, rotate, frustum, ortho
+from vispy.util.transforms import translate, rotate, frustum, ortho
 from vispy.io import imread, read_mesh
 import numpy as np
-from PyQt5.QtCore import QPoint, Qt 
+from PyQt5.QtCore import Qt 
 from typing import Tuple
 
 def lookAt(eye, target, up=[0, 1, 0]):
@@ -132,7 +132,7 @@ varying vec4 v_lightspace_position;
 
 float get_shadow(vec4 lightspace_position,  vec3 norm, vec3 light_direction)
 {
-    float bias = mix(0.005, 0.0, dot(norm, light_direction));    
+    float bias = mix(0.05, 0.0, dot(norm, light_direction));    
 
     vec3 position_ndc = lightspace_position.xyz / lightspace_position.w;
     position_ndc = position_ndc * 0.5 + 0.5;
