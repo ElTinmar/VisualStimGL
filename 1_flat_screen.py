@@ -239,11 +239,14 @@ attribute vec2 a_texcoord;
 attribute vec3 a_normal;
 attribute vec3 a_instance_shift;
 
+// need to make sure attributes are not optimized away causing some weird shift
 varying vec2 v_texcoord;
+varying vec3 v_normal_world;
 
 void main()
 {
     v_texcoord = a_texcoord;
+    v_normal_world = a_normal;
     vec4 world_pos = u_model * vec4(a_position, 1.0);
     world_pos.xyz = world_pos.xyz + a_instance_shift;
     gl_Position = u_lightspace * world_pos;
@@ -252,7 +255,6 @@ void main()
 
 FRAGMENT_SHADER_SHADOW="""
 #version 140
-varying vec2 v_texcoord;
 
 void main()
 {
