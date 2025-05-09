@@ -215,13 +215,13 @@ void main()
     gamma_corrected.rgb = pow(gamma_corrected.rgb, vec3(1.0/gamma));
     
     // debug shadow
-    vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
-    position_ndc = position_ndc * 0.5 + 0.5;
-    float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
-    gl_FragColor = vec4(vec3(closest_depth), 1.0);
+    //vec3 position_ndc = v_lightspace_position.xyz / v_lightspace_position.w;
+    //position_ndc = position_ndc * 0.5 + 0.5;
+    //float closest_depth = texture2D(u_shadow_map_texture, position_ndc.xy).r; 
+    //gl_FragColor = vec4(vec3(closest_depth), 1.0);
 
     // debug texture
-    gl_FragColor = vec4(v_texcoord,0,1);
+    //gl_FragColor = vec4(v_texcoord,0,1);
 
     gl_FragColor = gamma_corrected;
     gl_FragDepth = v_depth;
