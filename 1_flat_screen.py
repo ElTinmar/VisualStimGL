@@ -465,7 +465,7 @@ class Master(app.Canvas):
         self.cam_y += ty
         self.cam_z += tz
 
-        self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z))
+        self.create_view()
         self.create_projection()
         
         self.ground_program['u_view'] = self.view
