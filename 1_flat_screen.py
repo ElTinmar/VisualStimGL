@@ -300,9 +300,6 @@ class Master(app.Canvas):
         self.cam_y = 1
         self.cam_z = 20
 
-        # store last mouse position
-        self.last_mouse_pos = None
-
         self.set_context()
         self.create_view()
         self.create_projection()
