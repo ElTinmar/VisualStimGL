@@ -322,15 +322,17 @@ class Master(app.Canvas):
         gloo.set_state(depth_test=True)  # required for object in the Z axis to hide each other
 
     def create_view(self):
-        self.view = translate((-self.cam_x, -self.cam_y, -self.cam_z))
+        # if using an LCD it does not matter so much. 
+        # match distance if you use an actual projector
+        self.view = translate((0, 0, -100))
 
     def create_projection(self):
-        left = self.screen_bottomleft_x-self.cam_x
-        bottom = self.screen_bottomleft_y-self.cam_y
-        depth = self.screen_bottomleft_z-self.cam_z
+        left = self.screen_bottomleft_x
+        bottom = self.screen_bottomleft_y
+        depth = self.screen_bottomleft_z-(-100)
         right = left + self.screen_width_cm
         top = bottom + self.screen_height_cm
-        znear = 0.1
+        znear = 1
         zfar = 1000
         scale = znear/abs(depth)
         
@@ -465,16 +467,8 @@ class Master(app.Canvas):
         self.cam_y += ty
         self.cam_z += tz
 
-        self.create_view()
-        self.create_projection()
-        
-        self.ground_program['u_view'] = self.view
         self.ground_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
-        self.ground_program['u_projection'] = self.projection
-
-        self.main_program['u_view'] = self.view
         self.main_program['u_fish'] = [self.cam_x, self.cam_y, self.cam_z]
-        self.main_program['u_projection'] = self.projection
 
     def on_resize(self, event):
         width, height = event.size
